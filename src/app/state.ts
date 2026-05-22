@@ -1,4 +1,5 @@
-import type { AppState, Mat2, Vec2, VectorItem } from "./types";
+import type { AppState, DojoMode, Mat2, Vec2, VectorItem } from "./types";
+import { copyMat2 } from "../math/mat2";
 
 const VECTOR_COLORS = [
   "#d13f31",
@@ -17,14 +18,17 @@ const IDENTITY: Mat2 = [
 
 export function createInitialState(): AppState {
   return {
+    mode: "algebra",
     vectors: [
       { id: "v1", label: "u", value: { x: 1, y: 0.5 }, color: VECTOR_COLORS[0] },
       { id: "v2", label: "v", value: { x: 0.45, y: 1.25 }, color: VECTOR_COLORS[1] },
       { id: "v3", label: "w", value: { x: -0.9, y: 0.75 }, color: VECTOR_COLORS[2] },
     ],
     selectedVectorId: "v1",
-    selectedTransform: copyMatrix(IDENTITY),
-    globalTransform: copyMatrix(IDENTITY),
+    transformMatrix: copyMat2(IDENTITY),
+    transformT: 1,
+    scalarMultiplier: 1,
+    showComponentLegs: true,
     pairSelection: {
       firstId: "v1",
       secondId: "v2",
@@ -89,12 +93,24 @@ export function updateVectorValue(state: AppState, id: string, value: Vec2): voi
   }
 }
 
-export function setSelectedTransform(state: AppState, transform: Mat2): void {
-  state.selectedTransform = transform;
+export function setMode(state: AppState, mode: DojoMode): void {
+  state.mode = mode;
 }
 
-export function setGlobalTransform(state: AppState, transform: Mat2): void {
-  state.globalTransform = transform;
+export function setTransformMatrix(state: AppState, transform: Mat2): void {
+  state.transformMatrix = copyMat2(transform);
+}
+
+export function setTransformT(state: AppState, value: number): void {
+  state.transformT = clamp(value, 0, 1);
+}
+
+export function setScalarMultiplier(state: AppState, value: number): void {
+  state.scalarMultiplier = clamp(value, -3, 3);
+}
+
+export function setShowComponentLegs(state: AppState, value: boolean): void {
+  state.showComponentLegs = value;
 }
 
 export function setPairVector(
@@ -133,9 +149,9 @@ function normalizeStateRefs(state: AppState): void {
   }
 }
 
-function copyMatrix(matrix: Mat2): Mat2 {
-  return [
-    [matrix[0][0], matrix[0][1]],
-    [matrix[1][0], matrix[1][1]],
-  ];
+function clamp(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+  return Math.min(max, Math.max(min, value));
 }

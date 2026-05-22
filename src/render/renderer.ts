@@ -1,11 +1,15 @@
 import type { AppState, Mat2 } from "../app/types";
 import { getPairVectors, getSelectedVector } from "../app/state";
+import { realEigenpairs2 } from "../math/eigen";
+import { IDENTITY_2, isIdentityMat2, lerpMat2 } from "../math/mat2";
 import { getVisibleWorldBounds, makeCameraFromState } from "./camera";
 import { drawAxes, drawTransformedGrid, drawWorldGrid } from "./drawGrid";
 import {
+  drawComponentLegs,
+  drawEigenConstruction,
   drawGlobalVectorGhosts,
   drawPairConstruction,
-  drawSelectedTransformGhost,
+  drawScalarPreview,
   drawVectorItems,
 } from "./drawVectors";
 
@@ -28,33 +32,47 @@ export function createRenderer(canvas: HTMLCanvasElement, state: AppState): Rend
     ctx.fillStyle = "#f7f9fa";
     ctx.fillRect(0, 0, width, height);
 
-    const showGlobalTransform = !isIdentityMatrix(state.globalTransform);
-
     drawWorldGrid(ctx, camera);
-    if (showGlobalTransform) {
-      drawTransformedGrid(ctx, camera, bounds, state.globalTransform);
-    }
     drawAxes(ctx, camera);
 
-    const [firstPairVector, secondPairVector] = getPairVectors(state);
-    drawPairConstruction(ctx, camera, firstPairVector, secondPairVector);
-    if (showGlobalTransform) {
-      drawGlobalVectorGhosts(ctx, camera, state.vectors, state.globalTransform);
+    if (state.mode === "algebra") {
+      const [firstPairVector, secondPairVector] = getPairVectors(state);
+      drawPairConstruction(ctx, camera, firstPairVector, secondPairVector);
+      if (state.showComponentLegs) {
+        drawComponentLegs(ctx, camera, getSelectedVector(state));
+      }
+      drawScalarPreview(ctx, camera, getSelectedVector(state), state.scalarMultiplier);
+      drawVectorItems(ctx, camera, state.vectors, state.selectedVectorId);
+      return;
     }
-    drawSelectedTransformGhost(ctx, camera, getSelectedVector(state), state.selectedTransform);
+
+    if (state.mode === "geometry") {
+      const interpolatedMatrix = lerpMat2(IDENTITY_2, state.transformMatrix, state.transformT);
+      drawTransformedGridWhenVisible(ctx, camera, bounds, interpolatedMatrix);
+      if (!isIdentityMat2(interpolatedMatrix)) {
+        drawGlobalVectorGhosts(ctx, camera, state.vectors, interpolatedMatrix);
+      }
+      drawVectorItems(ctx, camera, state.vectors, state.selectedVectorId);
+      return;
+    }
+
+    drawTransformedGridWhenVisible(ctx, camera, bounds, state.transformMatrix);
+    drawEigenConstruction(ctx, camera, state.transformMatrix, realEigenpairs2(state.transformMatrix));
     drawVectorItems(ctx, camera, state.vectors, state.selectedVectorId);
   }
 
   return { redraw };
 }
 
-function isIdentityMatrix(matrix: Mat2): boolean {
-  return (
-    Math.abs(matrix[0][0] - 1) < 1e-10 &&
-    Math.abs(matrix[0][1]) < 1e-10 &&
-    Math.abs(matrix[1][0]) < 1e-10 &&
-    Math.abs(matrix[1][1] - 1) < 1e-10
-  );
+function drawTransformedGridWhenVisible(
+  ctx: CanvasRenderingContext2D,
+  camera: ReturnType<typeof makeCameraFromState>,
+  bounds: ReturnType<typeof getVisibleWorldBounds>,
+  matrix: Mat2,
+): void {
+  if (!isIdentityMat2(matrix)) {
+    drawTransformedGrid(ctx, camera, bounds, matrix);
+  }
 }
 
 function resizeCanvas(

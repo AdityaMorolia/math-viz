@@ -5,6 +5,8 @@ export type Vec2 = {
 
 export type Mat2 = [[number, number], [number, number]];
 
+export type DojoMode = "algebra" | "geometry" | "eigenvectors";
+
 export type Bounds = {
   minX: number;
   maxX: number;
@@ -32,10 +34,13 @@ export type PairSelection = {
 };
 
 export type AppState = {
+  mode: DojoMode;
   vectors: VectorItem[];
   selectedVectorId: string | null;
-  selectedTransform: Mat2;
-  globalTransform: Mat2;
+  transformMatrix: Mat2;
+  transformT: number;
+  scalarMultiplier: number;
+  showComponentLegs: boolean;
   pairSelection: PairSelection;
   zoomOut: number;
   pan: Vec2;

@@ -52,6 +52,21 @@ select {
   line-height: 1.4;
 }
 
+.mode-picker {
+  max-width: 190px;
+  margin-top: 14px;
+}
+
+.mode-picker select {
+  min-height: 34px;
+}
+
+.mode-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .panel-section {
   border-top: 1px solid #e5eaed;
   padding-top: 14px;
@@ -157,7 +172,8 @@ select {
 input[type="number"]:focus,
 select:focus,
 button:focus-visible,
-input[type="range"]:focus-visible {
+input[type="range"]:focus-visible,
+input[type="checkbox"]:focus-visible {
   outline: 2px solid #2672ff;
   outline-offset: 2px;
 }
@@ -241,8 +257,40 @@ button:hover {
   margin-bottom: 10px;
 }
 
+.range-value {
+  color: #18252c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
 input[type="range"] {
   width: 100%;
+}
+
+.toggle-label {
+  display: flex;
+  grid-template-columns: unset;
+  align-items: center;
+  gap: 8px;
+  color: #4f5d65;
+}
+
+.toggle-label input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.preset-grid button {
+  min-height: 31px;
+  padding: 0 8px;
+  font-size: 12px;
 }
 
 .pair-picker {
