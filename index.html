@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linear Algebra Dojo</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <header class="sidebar-header">
+          <h1>Linear Algebra Dojo</h1>
+          <p>Drag vectors, stretch the plane, and watch the numbers move.</p>
+        </header>
+
+        <section class="panel-section">
+          <div class="section-heading">
+            <div class="section-title">Vectors</div>
+            <button id="add-vector" class="small-button" type="button">Add vector</button>
+          </div>
+          <div id="vector-list" class="vector-list" aria-label="Editable vectors"></div>
+        </section>
+
+        <section class="panel-section info-section">
+          <div class="section-title">Selected Vector</div>
+          <dl>
+            <div>
+              <dt>name</dt>
+              <dd id="readout-selected-name">n/a</dd>
+            </div>
+            <div>
+              <dt>coords</dt>
+              <dd id="readout-selected-coords">n/a</dd>
+            </div>
+            <div>
+              <dt>length</dt>
+              <dd id="readout-selected-length">n/a</dd>
+            </div>
+            <div>
+              <dt>A · vector</dt>
+              <dd id="readout-selected-image">n/a</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-title">Selected Matrix</div>
+          <div class="matrix-editor" aria-label="Transformation matrix">
+            <span class="matrix-name">A =</span>
+            <div class="matrix-box">
+              <input id="selected-a11" type="number" step="0.05" aria-label="selected matrix row 1 column 1" />
+              <input id="selected-a12" type="number" step="0.05" aria-label="selected matrix row 1 column 2" />
+              <input id="selected-a21" type="number" step="0.05" aria-label="selected matrix row 2 column 1" />
+              <input id="selected-a22" type="number" step="0.05" aria-label="selected matrix row 2 column 2" />
+            </div>
+          </div>
+          <p class="matrix-note">Blue ghost shows A · selected vector.</p>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-title">Global Matrix</div>
+          <div class="matrix-editor" aria-label="Global matrix">
+            <span class="matrix-name">G =</span>
+            <div class="matrix-box">
+              <input id="global-a11" type="number" step="0.05" aria-label="global matrix row 1 column 1" />
+              <input id="global-a12" type="number" step="0.05" aria-label="global matrix row 1 column 2" />
+              <input id="global-a21" type="number" step="0.05" aria-label="global matrix row 2 column 1" />
+              <input id="global-a22" type="number" step="0.05" aria-label="global matrix row 2 column 2" />
+            </div>
+          </div>
+          <p class="matrix-note">Orange grid shows G · plane.</p>
+        </section>
+
+        <section class="panel-section info-section">
+          <div class="section-title">Vector Pair</div>
+          <div class="pair-picker">
+            <label>
+              First
+              <select id="pair-first" aria-label="first vector"></select>
+            </label>
+            <label>
+              Second
+              <select id="pair-second" aria-label="second vector"></select>
+            </label>
+          </div>
+          <dl>
+            <div>
+              <dt>sum</dt>
+              <dd id="readout-pair-sum">n/a</dd>
+            </div>
+            <div>
+              <dt>difference</dt>
+              <dd id="readout-pair-difference">n/a</dd>
+            </div>
+            <div>
+              <dt>det</dt>
+              <dd id="readout-pair-det">n/a</dd>
+            </div>
+            <div>
+              <dt>area</dt>
+              <dd id="readout-pair-area">n/a</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-title">View</div>
+          <label class="range-label">
+            Zoom out
+            <input id="zoomOut" type="range" min="-1" max="5" step="0.05" />
+          </label>
+          <button id="reset-view" type="button">Reset view</button>
+        </section>
+      </aside>
+
+      <main class="canvas-wrap">
+        <canvas id="dojo-canvas" aria-label="Linear algebra visualization"></canvas>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
