@@ -1,12 +1,14 @@
 import type { AppState, Camera, Vec2 } from "../app/types";
-import { setSelectedVector } from "../app/state";
+import { setSelectedComplexNumber, setSelectedVector } from "../app/state";
 import { makeCameraFromState } from "../render/camera";
+import { hitTestComplexNumber, updateDraggedComplexNumber } from "./dragComplex";
 import { hitTestVector, updateDraggedVector } from "./dragVectors";
 
 type DragMode =
   | { type: "none" }
   | { type: "pan"; previous: Vec2 }
-  | { type: "vector"; vectorId: string };
+  | { type: "vector"; vectorId: string }
+  | { type: "complex"; numberId: string };
 
 export function bindPointerInteractions(
   canvas: HTMLCanvasElement,
@@ -19,10 +21,25 @@ export function bindPointerInteractions(
   canvas.addEventListener("pointerdown", (event) => {
     const screenPoint = pointerPosition(canvas, event);
     const camera = cameraForCanvas(canvas, state);
-    const vectorId = hitTestVector(screenPoint, state, camera);
 
     canvas.setPointerCapture(event.pointerId);
     canvas.classList.add("dragging");
+
+    if (state.mode === "complex") {
+      const numberId = hitTestComplexNumber(screenPoint, state, camera);
+      if (numberId) {
+        setSelectedComplexNumber(state, numberId);
+        syncControls();
+        redraw();
+        dragMode = { type: "complex", numberId };
+        return;
+      }
+
+      dragMode = { type: "pan", previous: screenPoint };
+      return;
+    }
+
+    const vectorId = hitTestVector(screenPoint, state, camera);
     if (vectorId) {
       setSelectedVector(state, vectorId);
       syncControls();
@@ -44,6 +61,13 @@ export function bindPointerInteractions(
 
     if (dragMode.type === "vector") {
       updateDraggedVector(state, dragMode.vectorId, screenPoint, camera);
+      syncControls();
+      redraw();
+      return;
+    }
+
+    if (dragMode.type === "complex") {
+      updateDraggedComplexNumber(state, dragMode.numberId, screenPoint, camera);
       syncControls();
       redraw();
       return;

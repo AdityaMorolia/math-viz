@@ -1,8 +1,9 @@
 import type { AppState, Mat2 } from "../app/types";
-import { getPairVectors, getSelectedVector } from "../app/state";
+import { getPairVectors, getScalarVector, getSelectedVector } from "../app/state";
 import { realEigenpairs2 } from "../math/eigen";
 import { IDENTITY_2, isIdentityMat2, lerpMat2 } from "../math/mat2";
 import { getVisibleWorldBounds, makeCameraFromState } from "./camera";
+import { drawComplexConstructions, drawComplexItems } from "./drawComplex";
 import { drawAxes, drawTransformedGrid, drawWorldGrid } from "./drawGrid";
 import {
   drawComponentLegs,
@@ -41,8 +42,14 @@ export function createRenderer(canvas: HTMLCanvasElement, state: AppState): Rend
       if (state.showComponentLegs) {
         drawComponentLegs(ctx, camera, getSelectedVector(state));
       }
-      drawScalarPreview(ctx, camera, getSelectedVector(state), state.scalarMultiplier);
+      drawScalarPreview(ctx, camera, getScalarVector(state), state.scalarMultiplier);
       drawVectorItems(ctx, camera, state.vectors, state.selectedVectorId);
+      return;
+    }
+
+    if (state.mode === "complex") {
+      drawComplexConstructions(ctx, camera, state);
+      drawComplexItems(ctx, camera, state.complexNumbers, state.selectedComplexId);
       return;
     }
 

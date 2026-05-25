@@ -281,6 +281,12 @@ input[type="range"] {
   margin: 0;
 }
 
+.concept-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 10px;
+}
+
 .preset-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -327,6 +333,8 @@ input[type="range"] {
   color: #18252c;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .canvas-wrap {

@@ -3,18 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Linear Algebra Dojo</title>
+    <title>Math Viz Dojo</title>
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar">
         <header class="sidebar-header">
-          <h1>Linear Algebra Dojo</h1>
-          <p>Drag vectors, stretch the plane, and watch the numbers move.</p>
+          <h1>Math Viz Dojo</h1>
+          <p>Drag vectors and complex numbers, stretch the plane, and watch the numbers move.</p>
           <label class="mode-picker">
             Mode
             <select id="mode-select" aria-label="dojo mode">
               <option value="algebra">Algebra</option>
+              <option value="complex">Complex Numbers</option>
               <option value="geometry">Geometry</option>
               <option value="eigenvectors">Eigenvectors</option>
             </select>
@@ -34,7 +35,7 @@
       </aside>
 
       <main class="canvas-wrap">
-        <canvas id="dojo-canvas" aria-label="Linear algebra visualization"></canvas>
+        <canvas id="dojo-canvas" aria-label="Math visualization"></canvas>
       </main>
     </div>
     <script type="module" src="/src/main.ts"></script>

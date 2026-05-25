@@ -1,20 +1,45 @@
 import {
+  addComplexNumber,
   addVector,
+  deleteComplexNumber,
   deleteVector,
+  getComplexAdditionNumbers,
+  getComplexMultiplicationNumbers,
+  getComplexUnaryNumber,
   getPairVectors,
+  getScalarVector,
+  getSelectedComplexNumber,
   getSelectedVector,
   resetView,
+  setComplexAdditionNumber,
+  setComplexConcept,
+  setComplexMultiplicationNumber,
+  setComplexRotationTheta,
+  setComplexUnaryNumber,
   setMode,
   setPairVector,
   setScalarMultiplier,
+  setScalarVector,
+  setSelectedComplexNumber,
   setSelectedVector,
   setShowComponentLegs,
   setTransformMatrix,
   setTransformT,
   setZoomOut,
+  updateComplexValue,
   updateVectorValue,
 } from "../app/state";
-import type { AppState, DojoMode, Mat2, Vec2, VectorItem } from "../app/types";
+import type { AppState, ComplexConcepts, ComplexItem, DojoMode, Mat2, Vec2, VectorItem } from "../app/types";
+import {
+  addComplex,
+  argument,
+  conjugateComplex,
+  modulus,
+  multiplyComplex,
+  normalizeAngle,
+  radiansToDegrees,
+  rotateByAngle,
+} from "../math/complex";
 import { realEigenpairs2 } from "../math/eigen";
 import { det2, mat2FromColumns } from "../math/mat2";
 import { add, norm, scale, sub } from "../math/vec2";
@@ -139,6 +164,12 @@ function renderModePanel(state: AppState): void {
     return;
   }
 
+  if (state.mode === "complex") {
+    panel.replaceChildren(...renderComplexPanel(state));
+    syncComplexReadouts(state);
+    return;
+  }
+
   panel.replaceChildren(...renderEigenPanel(state));
   syncEigenReadouts(state);
 }
@@ -189,6 +220,15 @@ function renderEigenPanel(state: AppState): HTMLElement[] {
   return [matrixSection, presetSection, readoutSection];
 }
 
+function renderComplexPanel(state: AppState): HTMLElement[] {
+  return [
+    renderComplexNumberSection(state),
+    renderComplexConceptSection(state),
+    renderComplexControlsSection(state),
+    renderComplexReadoutSection(state),
+  ];
+}
+
 function renderVectorSection(state: AppState): HTMLElement {
   const section = document.createElement("section");
   section.className = "panel-section";
@@ -231,14 +271,15 @@ function renderSelectedVectorSection(): HTMLElement {
       ["name", "readout-selected-name"],
       ["coords", "readout-selected-coords"],
       ["length", "readout-selected-length"],
-      ["k * vector", "readout-selected-scaled"],
     ]),
   );
   return section;
 }
 
 function renderAlgebraToolsSection(state: AppState): HTMLElement {
-  const section = createPanelSection("Algebra Tools");
+  const section = createPanelSection("Algebra Tools", "info-section");
+  const scalarVector = getScalarVector(state);
+  const scalarVectorLabel = createScalarVectorSelect(state);
 
   const scalarLabel = document.createElement("label");
   scalarLabel.className = "range-label";
@@ -256,6 +297,7 @@ function renderAlgebraToolsSection(state: AppState): HTMLElement {
   scalarInput.max = "3";
   scalarInput.step = "0.05";
   scalarInput.value = state.scalarMultiplier.toString();
+  scalarInput.disabled = !scalarVector;
   scalarInput.addEventListener("input", (event) => {
     setScalarMultiplier(state, Number((event.currentTarget as HTMLInputElement).value));
     scalarValue.textContent = formatNumber(state.scalarMultiplier);
@@ -278,7 +320,12 @@ function renderAlgebraToolsSection(state: AppState): HTMLElement {
   });
 
   componentLabel.append(componentInput, document.createTextNode("Show x/y component legs"));
-  section.append(scalarLabel, componentLabel);
+  section.append(
+    scalarVectorLabel,
+    scalarLabel,
+    createReadoutList([["scaled", "readout-scalar-scaled"]]),
+    componentLabel,
+  );
   return section;
 }
 
@@ -288,16 +335,30 @@ function renderPairSection(state: AppState): HTMLElement {
   const picker = document.createElement("div");
   picker.className = "pair-picker";
   picker.append(
-    createPairSelect("First", "pair-first", state, state.pairSelection.firstId, (id) => {
-      setPairVector(state, "firstId", id);
-      syncAlgebraReadouts(state);
-      dispatchRedraw();
-    }),
-    createPairSelect("Second", "pair-second", state, state.pairSelection.secondId, (id) => {
-      setPairVector(state, "secondId", id);
-      syncAlgebraReadouts(state);
-      dispatchRedraw();
-    }),
+    createPairSelect(
+      "First",
+      "pair-first",
+      state,
+      state.pairSelection.firstId,
+      state.pairSelection.secondId,
+      (id) => {
+        setPairVector(state, "firstId", id);
+        renderModePanel(state);
+        dispatchRedraw();
+      },
+    ),
+    createPairSelect(
+      "Second",
+      "pair-second",
+      state,
+      state.pairSelection.secondId,
+      state.pairSelection.firstId,
+      (id) => {
+        setPairVector(state, "secondId", id);
+        renderModePanel(state);
+        dispatchRedraw();
+      },
+    ),
   );
 
   section.append(
@@ -311,6 +372,353 @@ function renderPairSection(state: AppState): HTMLElement {
   );
 
   return section;
+}
+
+function renderComplexNumberSection(state: AppState): HTMLElement {
+  const section = document.createElement("section");
+  section.className = "panel-section";
+
+  const heading = document.createElement("div");
+  heading.className = "section-heading";
+
+  const title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "Complex Numbers";
+
+  const addButton = document.createElement("button");
+  addButton.className = "small-button";
+  addButton.type = "button";
+  addButton.textContent = "Add number";
+  addButton.addEventListener("click", () => {
+    addComplexNumber(state);
+    renderModePanel(state);
+    dispatchRedraw();
+  });
+
+  heading.append(title, addButton);
+  section.append(heading);
+
+  const list = document.createElement("div");
+  list.className = "vector-list";
+  list.setAttribute("aria-label", "Editable complex numbers");
+  renderComplexNumberList(state, list);
+  section.append(list);
+
+  return section;
+}
+
+function renderComplexConceptSection(state: AppState): HTMLElement {
+  const section = createPanelSection("Concepts");
+  const grid = document.createElement("div");
+  grid.className = "concept-grid";
+
+  grid.append(
+    createComplexConceptToggle(state, "addition", "Addition"),
+    createComplexConceptToggle(state, "multiplication", "Multiplication"),
+    createComplexConceptToggle(state, "conjugate", "Conjugate"),
+    createComplexConceptToggle(state, "rotation", "e^(i theta)"),
+    createComplexConceptToggle(state, "polar", "Polar"),
+  );
+
+  section.append(grid);
+  return section;
+}
+
+function renderComplexControlsSection(state: AppState): HTMLElement {
+  const section = createPanelSection("Controls");
+  let hasControls = false;
+
+  if (state.complexConcepts.addition) {
+    section.append(createComplexPairControls(state, "Add", state.complexAdditionSelection, (which, id) => {
+      setComplexAdditionNumber(state, which, id);
+    }));
+    hasControls = true;
+  }
+
+  if (state.complexConcepts.multiplication) {
+    section.append(
+      createComplexPairControls(state, "Multiply", state.complexMultiplicationSelection, (which, id) => {
+        setComplexMultiplicationNumber(state, which, id);
+      }),
+    );
+    hasControls = true;
+  }
+
+  if (hasComplexUnaryConcept(state)) {
+    section.append(createComplexUnarySelect(state));
+    hasControls = true;
+  }
+
+  if (state.complexConcepts.rotation) {
+    section.append(createComplexRotationControl(state));
+    hasControls = true;
+  }
+
+  if (!hasControls) {
+    section.append(createMutedNote("No concept selected."));
+  }
+
+  return section;
+}
+
+function renderComplexReadoutSection(state: AppState): HTMLElement {
+  const section = createPanelSection("Readout", "info-section");
+  const rows: [string, string][] = [
+    ["selected", "readout-complex-selected"],
+    ["value", "readout-complex-value"],
+  ];
+
+  if (state.complexConcepts.addition) {
+    rows.push(["sum", "readout-complex-addition"]);
+  }
+
+  if (state.complexConcepts.multiplication) {
+    rows.push(["product", "readout-complex-product"], ["rule", "readout-complex-product-rule"]);
+  }
+
+  if (state.complexConcepts.conjugate) {
+    rows.push(["conjugate", "readout-complex-conjugate"]);
+  }
+
+  if (state.complexConcepts.rotation) {
+    rows.push(["rotation", "readout-complex-rotation"]);
+  }
+
+  if (state.complexConcepts.polar) {
+    rows.push(["polar", "readout-complex-polar"]);
+  }
+
+  section.append(createReadoutList(rows));
+  return section;
+}
+
+function renderComplexNumberList(state: AppState, list: HTMLElement): void {
+  list.replaceChildren();
+
+  if (state.complexNumbers.length === 0) {
+    list.append(createMutedNote("No complex numbers yet."));
+    return;
+  }
+
+  for (const number of state.complexNumbers) {
+    list.append(createComplexNumberRow(state, number));
+  }
+}
+
+function createComplexNumberRow(state: AppState, number: ComplexItem): HTMLElement {
+  const row = document.createElement("div");
+  row.className =
+    number.id === state.selectedComplexId ? "vector-row selected" : "vector-row";
+
+  const selectButton = document.createElement("button");
+  selectButton.type = "button";
+  selectButton.className = "vector-select";
+  selectButton.setAttribute("aria-label", `Select ${number.label}`);
+  selectButton.addEventListener("click", () => {
+    setSelectedComplexNumber(state, number.id);
+    renderModePanel(state);
+    dispatchRedraw();
+  });
+
+  const swatch = document.createElement("span");
+  swatch.className = "vector-swatch";
+  swatch.style.background = number.color;
+
+  const name = document.createElement("span");
+  name.textContent = number.label;
+
+  selectButton.append(swatch, name);
+
+  const realInput = createVectorInput(`${number.label} real`, number.value.x);
+  const imagInput = createVectorInput(`${number.label} imaginary`, number.value.y);
+
+  const updateValue = () => {
+    updateComplexValue(state, number.id, {
+      x: readInputNumber(realInput),
+      y: readInputNumber(imagInput),
+    });
+    setSelectedComplexNumber(state, number.id);
+    row.classList.add("selected");
+    syncComplexReadouts(state);
+    dispatchRedraw();
+  };
+
+  realInput.addEventListener("input", updateValue);
+  imagInput.addEventListener("input", updateValue);
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "vector-delete";
+  deleteButton.textContent = "Remove";
+  deleteButton.addEventListener("click", () => {
+    deleteComplexNumber(state, number.id);
+    renderModePanel(state);
+    dispatchRedraw();
+  });
+
+  row.append(selectButton, realInput, imagInput, deleteButton);
+  return row;
+}
+
+function createComplexConceptToggle(
+  state: AppState,
+  concept: keyof ComplexConcepts,
+  labelText: string,
+): HTMLElement {
+  const label = document.createElement("label");
+  label.className = "toggle-label";
+
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = state.complexConcepts[concept];
+  input.addEventListener("change", (event) => {
+    setComplexConcept(state, concept, (event.currentTarget as HTMLInputElement).checked);
+    renderModePanel(state);
+    dispatchRedraw();
+  });
+
+  label.append(input, document.createTextNode(labelText));
+  return label;
+}
+
+function createComplexPairControls(
+  state: AppState,
+  labelPrefix: string,
+  selection: AppState["complexAdditionSelection"],
+  onChange: (which: "firstId" | "secondId", id: string | null) => void,
+): HTMLElement {
+  const picker = document.createElement("div");
+  picker.className = "pair-picker";
+  picker.append(
+    createComplexSelect(
+      `${labelPrefix} first`,
+      state,
+      selection.firstId,
+      selection.secondId,
+      (id) => {
+        onChange("firstId", id);
+        renderModePanel(state);
+        dispatchRedraw();
+      },
+    ),
+    createComplexSelect(
+      `${labelPrefix} second`,
+      state,
+      selection.secondId,
+      selection.firstId,
+      (id) => {
+        onChange("secondId", id);
+        renderModePanel(state);
+        dispatchRedraw();
+      },
+    ),
+  );
+  return picker;
+}
+
+function createComplexUnarySelect(state: AppState): HTMLElement {
+  return createComplexSelect(
+    "Use number",
+    state,
+    state.complexUnaryId,
+    null,
+    (id) => {
+      setComplexUnaryNumber(state, id);
+      renderModePanel(state);
+      dispatchRedraw();
+    },
+  );
+}
+
+function createComplexRotationControl(state: AppState): HTMLElement {
+  const label = document.createElement("label");
+  label.className = "range-label";
+  label.append(document.createTextNode("Rotation angle "));
+
+  const value = document.createElement("span");
+  value.className = "range-value";
+  value.textContent = `${formatNumber(radiansToDegrees(state.complexRotationTheta))} deg`;
+
+  const input = document.createElement("input");
+  input.type = "range";
+  input.min = "-180";
+  input.max = "180";
+  input.step = "1";
+  input.value = radiansToDegrees(state.complexRotationTheta).toString();
+  input.addEventListener("input", (event) => {
+    const degrees = Number((event.currentTarget as HTMLInputElement).value);
+    setComplexRotationTheta(state, (degrees * Math.PI) / 180);
+    value.textContent = `${formatNumber(radiansToDegrees(state.complexRotationTheta))} deg`;
+    syncComplexReadouts(state);
+    dispatchRedraw();
+  });
+
+  label.append(value, input);
+  return label;
+}
+
+function createComplexSelect(
+  labelText: string,
+  state: AppState,
+  selectedId: string | null,
+  excludedId: string | null,
+  onChange: (id: string | null) => void,
+): HTMLElement {
+  const label = document.createElement("label");
+  label.textContent = labelText;
+
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", labelText.toLowerCase());
+  appendComplexOptions(select, state, selectedId, excludedId, "Choose number");
+  select.addEventListener("change", (event) => {
+    onChange(readOptionalId(event.currentTarget as HTMLSelectElement));
+  });
+
+  label.append(select);
+  return label;
+}
+
+function appendComplexOptions(
+  select: HTMLSelectElement,
+  state: AppState,
+  selectedId: string | null,
+  excludedId: string | null,
+  placeholderText: string,
+): void {
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = state.complexNumbers.length === 0 ? "None" : placeholderText;
+  placeholder.selected = !selectedId;
+  select.append(placeholder);
+
+  if (state.complexNumbers.length === 0) {
+    select.disabled = true;
+    return;
+  }
+
+  for (const number of state.complexNumbers) {
+    const option = document.createElement("option");
+    option.value = number.id;
+    option.textContent = number.label;
+    option.selected = number.id === selectedId;
+    option.disabled = number.id === excludedId;
+    select.append(option);
+  }
+}
+
+function createMutedNote(text: string): HTMLElement {
+  const note = document.createElement("p");
+  note.className = "empty-note";
+  note.textContent = text;
+  return note;
+}
+
+function hasComplexUnaryConcept(state: AppState): boolean {
+  return (
+    state.complexConcepts.conjugate ||
+    state.complexConcepts.rotation ||
+    state.complexConcepts.polar
+  );
 }
 
 function renderVectorList(state: AppState, list: HTMLElement): void {
@@ -482,12 +890,32 @@ function createTransformTControl(state: AppState): HTMLElement {
   return label;
 }
 
+function createScalarVectorSelect(state: AppState): HTMLElement {
+  const label = document.createElement("label");
+  label.textContent = "Scale vector";
+
+  const select = document.createElement("select");
+  select.id = "scalar-vector";
+  select.setAttribute("aria-label", "scale vector");
+  appendVectorOptions(select, state, state.scalarVectorId, null, "Choose vector");
+
+  select.addEventListener("change", (event) => {
+    setScalarVector(state, readOptionalId(event.currentTarget as HTMLSelectElement));
+    renderModePanel(state);
+    dispatchRedraw();
+  });
+
+  label.append(select);
+  return label;
+}
+
 function createPairSelect(
   labelText: string,
   id: string,
   state: AppState,
-  selectedId: string,
-  onChange: (id: string) => void,
+  selectedId: string | null,
+  excludedId: string | null,
+  onChange: (id: string | null) => void,
 ): HTMLElement {
   const label = document.createElement("label");
   label.textContent = labelText;
@@ -495,29 +923,42 @@ function createPairSelect(
   const select = document.createElement("select");
   select.id = id;
   select.setAttribute("aria-label", labelText.toLowerCase());
-
-  if (state.vectors.length === 0) {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "None";
-    select.append(option);
-    select.disabled = true;
-  } else {
-    for (const vector of state.vectors) {
-      const option = document.createElement("option");
-      option.value = vector.id;
-      option.textContent = vector.label;
-      option.selected = vector.id === selectedId;
-      select.append(option);
-    }
-  }
+  appendVectorOptions(select, state, selectedId, excludedId, "Choose vector");
 
   select.addEventListener("change", (event) => {
-    onChange((event.currentTarget as HTMLSelectElement).value);
+    onChange(readOptionalId(event.currentTarget as HTMLSelectElement));
   });
 
   label.append(select);
   return label;
+}
+
+function appendVectorOptions(
+  select: HTMLSelectElement,
+  state: AppState,
+  selectedId: string | null,
+  excludedId: string | null,
+  placeholderText: string,
+): void {
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = state.vectors.length === 0 ? "None" : placeholderText;
+  placeholder.selected = !selectedId;
+  select.append(placeholder);
+
+  if (state.vectors.length === 0) {
+    select.disabled = true;
+    return;
+  }
+
+  for (const vector of state.vectors) {
+    const option = document.createElement("option");
+    option.value = vector.id;
+    option.textContent = vector.label;
+    option.selected = vector.id === selectedId;
+    option.disabled = vector.id === excludedId;
+    select.append(option);
+  }
 }
 
 function createPanelSection(titleText: string, extraClass = ""): HTMLElement {
@@ -557,16 +998,17 @@ function syncAlgebraReadouts(state: AppState): void {
     setTextIfPresent("readout-selected-name", selected.label);
     setTextIfPresent("readout-selected-coords", formatVector(selected.value));
     setTextIfPresent("readout-selected-length", formatNumber(norm(selected.value)));
-    setTextIfPresent(
-      "readout-selected-scaled",
-      formatVector(scale(selected.value, state.scalarMultiplier)),
-    );
   } else {
     setTextIfPresent("readout-selected-name", "n/a");
     setTextIfPresent("readout-selected-coords", "n/a");
     setTextIfPresent("readout-selected-length", "n/a");
-    setTextIfPresent("readout-selected-scaled", "n/a");
   }
+
+  const scalarVector = getScalarVector(state);
+  setTextIfPresent(
+    "readout-scalar-scaled",
+    scalarVector ? formatVector(scale(scalarVector.value, state.scalarMultiplier)) : "n/a",
+  );
 
   const [first, second] = getPairVectors(state);
   if (first && second) {
@@ -582,6 +1024,79 @@ function syncAlgebraReadouts(state: AppState): void {
     setTextIfPresent("readout-pair-difference", "n/a");
     setTextIfPresent("readout-pair-det", "n/a");
     setTextIfPresent("readout-pair-area", "n/a");
+  }
+}
+
+function syncComplexReadouts(state: AppState): void {
+  const selected = getSelectedComplexNumber(state);
+  if (selected) {
+    setTextIfPresent("readout-complex-selected", selected.label);
+    setTextIfPresent("readout-complex-value", formatComplex(selected.value));
+  } else {
+    setTextIfPresent("readout-complex-selected", "n/a");
+    setTextIfPresent("readout-complex-value", "n/a");
+  }
+
+  const [addFirst, addSecond] = getComplexAdditionNumbers(state);
+  if (addFirst && addSecond) {
+    setTextIfPresent(
+      "readout-complex-addition",
+      `${addFirst.label} + ${addSecond.label} = ${formatComplex(
+        addComplex(addFirst.value, addSecond.value),
+      )}`,
+    );
+  } else {
+    setTextIfPresent("readout-complex-addition", "n/a");
+  }
+
+  const [multiplyFirst, multiplySecond] = getComplexMultiplicationNumbers(state);
+  if (multiplyFirst && multiplySecond) {
+    const product = multiplyComplex(multiplyFirst.value, multiplySecond.value);
+    const firstModulus = modulus(multiplyFirst.value);
+    const secondModulus = modulus(multiplySecond.value);
+    const firstAngle = argument(multiplyFirst.value);
+    const secondAngle = argument(multiplySecond.value);
+    const productModulus = modulus(product);
+    const productAngle = normalizeAngle(firstAngle + secondAngle);
+    setTextIfPresent(
+      "readout-complex-product",
+      `${multiplyFirst.label}${multiplySecond.label} = ${formatComplex(product)}`,
+    );
+    setTextIfPresent(
+      "readout-complex-product-rule",
+      `|zw| = ${formatNumber(firstModulus)} * ${formatNumber(
+        secondModulus,
+      )} = ${formatNumber(productModulus)}, arg = ${formatAngle(
+        firstAngle,
+      )} + ${formatAngle(secondAngle)} = ${formatAngle(productAngle)}`,
+    );
+  } else {
+    setTextIfPresent("readout-complex-product", "n/a");
+    setTextIfPresent("readout-complex-product-rule", "n/a");
+  }
+
+  const unary = getComplexUnaryNumber(state);
+  if (unary) {
+    setTextIfPresent(
+      "readout-complex-conjugate",
+      `conj(${unary.label}) = ${formatComplex(conjugateComplex(unary.value))}`,
+    );
+    setTextIfPresent(
+      "readout-complex-rotation",
+      `${unary.label} e^(i theta) = ${formatComplex(
+        rotateByAngle(unary.value, state.complexRotationTheta),
+      )}`,
+    );
+    setTextIfPresent(
+      "readout-complex-polar",
+      `${unary.label} = ${formatNumber(modulus(unary.value))} cis(${formatAngle(
+        argument(unary.value),
+      )})`,
+    );
+  } else {
+    setTextIfPresent("readout-complex-conjugate", "n/a");
+    setTextIfPresent("readout-complex-rotation", "n/a");
+    setTextIfPresent("readout-complex-polar", "n/a");
   }
 }
 
@@ -628,8 +1143,12 @@ function readInputNumber(input: HTMLInputElement): number {
   return Number.isFinite(value) ? value : 0;
 }
 
+function readOptionalId(select: HTMLSelectElement): string | null {
+  return select.value || null;
+}
+
 function readMode(value: string): DojoMode {
-  if (value === "geometry" || value === "eigenvectors") {
+  if (value === "geometry" || value === "eigenvectors" || value === "complex") {
     return value;
   }
   return "algebra";
@@ -641,6 +1160,28 @@ function formatValues(values: number[]): string {
 
 function formatVector(vector: Vec2): string {
   return `(${formatNumber(vector.x)}, ${formatNumber(vector.y)})`;
+}
+
+function formatComplex(value: Vec2): string {
+  const real = formatNumber(value.x);
+  const imaginaryMagnitude = formatNumber(Math.abs(value.y));
+
+  if (Math.abs(value.y) < 1e-10) {
+    return real;
+  }
+
+  const imaginary =
+    Math.abs(Math.abs(value.y) - 1) < 1e-10 ? "i" : `${imaginaryMagnitude}i`;
+
+  if (Math.abs(value.x) < 1e-10) {
+    return value.y < 0 ? `-${imaginary}` : imaginary;
+  }
+
+  return value.y < 0 ? `${real} - ${imaginary}` : `${real} + ${imaginary}`;
+}
+
+function formatAngle(radians: number): string {
+  return `${formatNumber(radiansToDegrees(normalizeAngle(radians)))} deg`;
 }
 
 function setTextIfPresent(id: string, text: string): void {
