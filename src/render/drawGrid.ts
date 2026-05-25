@@ -49,6 +49,72 @@ export function drawAxes(ctx: CanvasRenderingContext2D, camera: Camera): void {
   ctx.restore();
 }
 
+export function drawAxisCoordinateLabels(
+  ctx: CanvasRenderingContext2D,
+  camera: Camera,
+  imaginaryYAxis = false,
+): void {
+  const step = niceStep(52 / camera.scale);
+  const minX = camera.center.x - camera.width / 2 / camera.scale;
+  const maxX = camera.center.x + camera.width / 2 / camera.scale;
+  const minY = camera.center.y - camera.height / 2 / camera.scale;
+  const maxY = camera.center.y + camera.height / 2 / camera.scale;
+  const xAxis = worldToScreen(camera, { x: 0, y: 0 }).y;
+  const yAxis = worldToScreen(camera, { x: 0, y: 0 }).x;
+  const xAxisVisible = xAxis >= 0 && xAxis <= camera.height;
+  const yAxisVisible = yAxis >= 0 && yAxis <= camera.width;
+
+  if (!xAxisVisible && !yAxisVisible) {
+    return;
+  }
+
+  ctx.save();
+  ctx.fillStyle = "#65737d";
+  ctx.strokeStyle = "#aebac1";
+  ctx.lineWidth = 1;
+  ctx.font = "13px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+
+  if (xAxisVisible) {
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const labelY = clampScreen(xAxis + 7, 4, camera.height - 18);
+    for (let x = Math.floor(minX / step) * step; x <= maxX; x += step) {
+      if (isNearZero(x)) {
+        continue;
+      }
+      const screen = worldToScreen(camera, { x, y: 0 });
+      drawTick(ctx, screen.x, xAxis - 4, screen.x, xAxis + 4);
+      ctx.fillText(formatCoordinate(x), screen.x, labelY);
+    }
+  }
+
+  if (yAxisVisible) {
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    const labelX = clampScreen(yAxis - 8, 28, camera.width - 4);
+    for (let y = Math.floor(minY / step) * step; y <= maxY; y += step) {
+      if (isNearZero(y)) {
+        continue;
+      }
+      const screen = worldToScreen(camera, { x: 0, y });
+      drawTick(ctx, yAxis - 4, screen.y, yAxis + 4, screen.y);
+      ctx.fillText(
+        imaginaryYAxis ? formatImaginaryCoordinate(y) : formatCoordinate(y),
+        labelX,
+        screen.y,
+      );
+    }
+  }
+
+  if (xAxisVisible && yAxisVisible) {
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("0", yAxis + 6, xAxis + 6);
+  }
+
+  ctx.restore();
+}
+
 export function drawTransformedGrid(
   ctx: CanvasRenderingContext2D,
   camera: Camera,
@@ -102,6 +168,19 @@ function drawLine(
   ctx.stroke();
 }
 
+function drawTick(
+  ctx: CanvasRenderingContext2D,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
+
 function niceStep(rawStep: number): number {
   const power = 10 ** Math.floor(Math.log10(rawStep));
   const normalized = rawStep / power;
@@ -116,4 +195,35 @@ function niceStep(rawStep: number): number {
     return 5 * power;
   }
   return 10 * power;
+}
+
+function formatCoordinate(value: number): string {
+  if (isNearZero(value)) {
+    return "0";
+  }
+  return Number(value.toFixed(5)).toString();
+}
+
+function formatImaginaryCoordinate(value: number): string {
+  if (isNearZero(value)) {
+    return "0";
+  }
+
+  if (Math.abs(value - 1) < 1e-10) {
+    return "i";
+  }
+
+  if (Math.abs(value + 1) < 1e-10) {
+    return "-i";
+  }
+
+  return `${formatCoordinate(value)}i`;
+}
+
+function isNearZero(value: number): boolean {
+  return Math.abs(value) < 1e-10;
+}
+
+function clampScreen(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }

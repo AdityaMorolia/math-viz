@@ -9,14 +9,15 @@
     <div class="app-shell">
       <aside class="sidebar">
         <header class="sidebar-header">
-          <h1>Math Viz Dojo</h1>
-          <p>Drag vectors and complex numbers, stretch the plane, and watch the numbers move.</p>
+          <h1>Math Viz</h1>
+          <p>Touch and feel the vectors, watch the numbers move.</p>
           <label class="mode-picker">
             Mode
             <select id="mode-select" aria-label="dojo mode">
-              <option value="algebra">Algebra</option>
+              <option value="algebra">Vector Algebra</option>
               <option value="complex">Complex Numbers</option>
-              <option value="geometry">Geometry</option>
+              <option value="qubit">Qubit Playground</option>
+              <option value="geometry">Vector Geometry</option>
               <option value="eigenvectors">Eigenvectors</option>
             </select>
           </label>
@@ -30,12 +31,17 @@
             Zoom out
             <input id="zoomOut" type="range" min="-1" max="5" step="0.05" />
           </label>
+          <label class="toggle-label">
+            <input id="show-axis-coordinates" type="checkbox" />
+            Show axis coordinates
+          </label>
           <button id="reset-view" type="button">Reset view</button>
         </section>
       </aside>
 
       <main class="canvas-wrap">
         <canvas id="dojo-canvas" aria-label="Math visualization"></canvas>
+        <div id="bloch-root" class="bloch-root" aria-label="Bloch sphere visualization"></div>
       </main>
     </div>
     <script type="module" src="/src/main.ts"></script>

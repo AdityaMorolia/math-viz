@@ -10,6 +10,8 @@ import {
   conjugateComplex,
   modulus,
   multiplyComplex,
+  normalizeAngle,
+  radiansToDegrees,
   rotateByAngle,
 } from "../math/complex";
 import { parallelogramFromVectors } from "../math/parallelogram";
@@ -179,8 +181,16 @@ function drawComplexRotation(
     width: 2.2,
     alpha: 0.9,
   });
-  drawVectorLabel(ctx, camera, rotated, `${number.label}e^(i theta)`, ROTATION_COLOR);
-  drawAngleArc(ctx, camera, argument(number.value), argument(number.value) + theta, ROTATION_COLOR);
+  const thetaLabel = formatAngleLabel(theta);
+  drawVectorLabel(ctx, camera, rotated, `${number.label}e^(i${thetaLabel})`, ROTATION_COLOR);
+  drawAngleArc(
+    ctx,
+    camera,
+    argument(number.value),
+    argument(number.value) + theta,
+    ROTATION_COLOR,
+    thetaLabel,
+  );
 }
 
 function drawComplexPolar(
@@ -194,8 +204,37 @@ function drawComplexPolar(
   }
 
   drawWorldCircle(ctx, camera, radius, POLAR_COLOR, 0.22);
-  drawAngleArc(ctx, camera, 0, argument(number.value), POLAR_COLOR);
+  const theta = argument(number.value);
+  const thetaLabel = formatAngleLabel(theta);
+  const xLeg = { x: number.value.x, y: 0 };
+  drawWorldLine(ctx, camera, { x: 0, y: 0 }, xLeg, {
+    color: POLAR_COLOR,
+    width: 1.4,
+    alpha: 0.48,
+    dashed: true,
+  });
+  drawWorldLine(ctx, camera, xLeg, number.value, {
+    color: POLAR_COLOR,
+    width: 1.4,
+    alpha: 0.48,
+    dashed: true,
+  });
+  drawAngleArc(ctx, camera, 0, theta, POLAR_COLOR, thetaLabel);
   drawVectorLabel(ctx, camera, scale(number.value, 0.52), "r", POLAR_COLOR);
+  drawVectorLabel(
+    ctx,
+    camera,
+    { x: number.value.x / 2, y: -0.14 },
+    `r cos(${thetaLabel})`,
+    POLAR_COLOR,
+  );
+  drawVectorLabel(
+    ctx,
+    camera,
+    { x: number.value.x + 0.08, y: number.value.y / 2 },
+    `r sin(${thetaLabel})`,
+    POLAR_COLOR,
+  );
 }
 
 type PolygonStyle = {
@@ -283,6 +322,7 @@ function drawAngleArc(
   startAngle: number,
   endAngle: number,
   color: string,
+  label: string,
 ): void {
   if (Math.abs(endAngle - startAngle) < 1e-10) {
     return;
@@ -312,5 +352,9 @@ function drawAngleArc(
   ctx.stroke();
   ctx.restore();
 
-  drawVectorLabel(ctx, camera, labelPoint, "theta", color);
+  drawVectorLabel(ctx, camera, labelPoint, label, color);
+}
+
+function formatAngleLabel(radians: number): string {
+  return `${Number(radiansToDegrees(normalizeAngle(radians)).toFixed(0)).toString()} deg`;
 }

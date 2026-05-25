@@ -41,14 +41,14 @@ select {
 
 .sidebar-header h1 {
   margin: 0 0 6px;
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1.15;
 }
 
 .sidebar-header p {
   margin: 0;
   color: #65737d;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
@@ -75,7 +75,7 @@ select {
 .section-title {
   margin-bottom: 10px;
   color: #28343b;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -97,7 +97,7 @@ label {
   display: grid;
   gap: 5px;
   color: #5b6870;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 input[type="number"],
@@ -120,7 +120,7 @@ select {
 .matrix-name {
   color: #26323a;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -166,7 +166,7 @@ select {
 .matrix-note {
   margin: 8px 0 0 38px;
   color: #6b7880;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 input[type="number"]:focus,
@@ -195,7 +195,7 @@ button:hover {
 .small-button {
   min-height: 28px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .vector-list {
@@ -244,13 +244,27 @@ button:hover {
   min-height: 31px;
   padding: 0 8px;
   color: #5b6870;
-  font-size: 12px;
+  font-size: 13px;
+}
+
+.compact-input-label {
+  gap: 3px;
+  min-width: 0;
+  color: #6b7880;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.compact-input-label input {
+  min-width: 0;
+  font-size: 13px;
 }
 
 .empty-note {
   margin: 0;
   color: #6b7880;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .range-label {
@@ -260,7 +274,7 @@ button:hover {
 .range-value {
   color: #18252c;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 input[type="range"] {
@@ -296,7 +310,7 @@ input[type="range"] {
 .preset-grid button {
   min-height: 31px;
   padding: 0 8px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .pair-picker {
@@ -308,6 +322,61 @@ input[type="range"] {
 
 .pair-picker select {
   min-height: 32px;
+}
+
+.qubit-amplitudes {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.qubit-amplitude-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.qubit-amplitude-name {
+  color: #28343b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.probability-bars {
+  display: grid;
+  gap: 9px;
+}
+
+.probability-row {
+  display: grid;
+  grid-template-columns: 38px 1fr 48px;
+  align-items: center;
+  gap: 9px;
+  color: #4f5d65;
+  font-size: 13px;
+}
+
+.probability-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6edf0;
+}
+
+.probability-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: #008da6;
+  transition: width 120ms ease;
+}
+
+.probability-value {
+  color: #18252c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-align: right;
 }
 
 .info-section dl {
@@ -325,14 +394,14 @@ input[type="range"] {
 
 .info-section dt {
   color: #6b7880;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .info-section dd {
   margin: 0;
   color: #18252c;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+  font-size: 13px;
   overflow-wrap: anywhere;
   text-align: right;
 }
@@ -350,8 +419,29 @@ input[type="range"] {
   cursor: grab;
 }
 
+#dojo-canvas.hidden {
+  display: none;
+}
+
 #dojo-canvas.dragging {
   cursor: grabbing;
+}
+
+.bloch-root {
+  position: absolute;
+  inset: 0;
+  display: none;
+  background: #f7f9fa;
+}
+
+.bloch-root.visible {
+  display: block;
+}
+
+.bloch-root canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 @media (max-width: 760px) {
@@ -367,6 +457,10 @@ input[type="range"] {
   }
 
   #dojo-canvas {
+    height: 52vh;
+  }
+
+  .bloch-root {
     height: 52vh;
   }
 

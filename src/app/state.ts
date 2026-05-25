@@ -5,10 +5,19 @@ import type {
   DojoMode,
   Mat2,
   PairSelection,
+  QubitGate,
+  QubitPreset,
+  QubitRotationAngles,
   Vec2,
   VectorItem,
 } from "./types";
 import { copyMat2 } from "../math/mat2";
+import {
+  applyQubitGateToAmplitudes,
+  normalizeQubit,
+  qubitPresetAmplitudes,
+  rotateQubitAmplitudes,
+} from "../math/qubit";
 
 const VECTOR_COLORS = [
   "#d13f31",
@@ -77,6 +86,14 @@ export function createInitialState(): AppState {
     complexUnaryId: null,
     complexRotationTheta: Math.PI / 4,
     nextComplexNumber: 2,
+    qubitAlpha: { x: 1, y: 0 },
+    qubitBeta: { x: 0, y: 0 },
+    qubitRotationAngles: {
+      x: 0,
+      y: 0,
+      z: 0,
+    },
+    showAxisCoordinates: false,
     zoomOut: DEFAULT_ZOOM_OUT,
     pan: { x: 0, y: 0 },
     nextVectorNumber: 2,
@@ -282,6 +299,44 @@ export function setComplexRotationTheta(state: AppState, value: number): void {
   state.complexRotationTheta = clamp(value, -Math.PI, Math.PI);
 }
 
+export function setQubitAmplitudes(state: AppState, alpha: Vec2, beta: Vec2): void {
+  const normalized = normalizeQubit(alpha, beta);
+  state.qubitAlpha = normalized.alpha;
+  state.qubitBeta = normalized.beta;
+  resetQubitRotationAngles(state);
+}
+
+export function applyQubitGate(state: AppState, gate: QubitGate): void {
+  const next = applyQubitGateToAmplitudes(state.qubitAlpha, state.qubitBeta, gate);
+  state.qubitAlpha = next.alpha;
+  state.qubitBeta = next.beta;
+  resetQubitRotationAngles(state);
+}
+
+export function setQubitPreset(state: AppState, preset: QubitPreset): void {
+  const next = qubitPresetAmplitudes(preset);
+  state.qubitAlpha = next.alpha;
+  state.qubitBeta = next.beta;
+  resetQubitRotationAngles(state);
+}
+
+export function setQubitRotationAngle(
+  state: AppState,
+  axis: keyof QubitRotationAngles,
+  angle: number,
+): void {
+  const nextAngle = clamp(angle, -Math.PI, Math.PI);
+  const delta = nextAngle - state.qubitRotationAngles[axis];
+  const next = rotateQubitAmplitudes(state.qubitAlpha, state.qubitBeta, axis, delta);
+  state.qubitAlpha = next.alpha;
+  state.qubitBeta = next.beta;
+  state.qubitRotationAngles[axis] = nextAngle;
+}
+
+export function setShowAxisCoordinates(state: AppState, value: boolean): void {
+  state.showAxisCoordinates = value;
+}
+
 export function setZoomOut(state: AppState, value: number): void {
   state.zoomOut = value;
 }
@@ -335,6 +390,10 @@ function clamp(value: number, min: number, max: number): number {
     return min;
   }
   return Math.min(max, Math.max(min, value));
+}
+
+function resetQubitRotationAngles(state: AppState): void {
+  state.qubitRotationAngles = { x: 0, y: 0, z: 0 };
 }
 
 function labelForVectorNumber(vectorNumber: number): string {

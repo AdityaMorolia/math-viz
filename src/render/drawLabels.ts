@@ -11,8 +11,8 @@ export function drawVectorLabel(
   const screen = worldToScreen(camera, vector);
   ctx.save();
   ctx.fillStyle = color;
-  ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-  ctx.fillText(label, screen.x + 8, screen.y - 8);
+  ctx.font = "14px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+  ctx.fillText(label, screen.x + 9, screen.y - 9);
   ctx.restore();
 }
 

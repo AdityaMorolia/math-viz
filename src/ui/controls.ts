@@ -1,6 +1,7 @@
 import {
   addComplexNumber,
   addVector,
+  applyQubitGate,
   deleteComplexNumber,
   deleteVector,
   getComplexAdditionNumbers,
@@ -18,10 +19,14 @@ import {
   setComplexUnaryNumber,
   setMode,
   setPairVector,
+  setQubitAmplitudes,
+  setQubitPreset,
+  setQubitRotationAngle,
   setScalarMultiplier,
   setScalarVector,
   setSelectedComplexNumber,
   setSelectedVector,
+  setShowAxisCoordinates,
   setShowComponentLegs,
   setTransformMatrix,
   setTransformT,
@@ -29,7 +34,18 @@ import {
   updateComplexValue,
   updateVectorValue,
 } from "../app/state";
-import type { AppState, ComplexConcepts, ComplexItem, DojoMode, Mat2, Vec2, VectorItem } from "../app/types";
+import type {
+  AppState,
+  ComplexConcepts,
+  ComplexItem,
+  DojoMode,
+  Mat2,
+  QubitGate,
+  QubitPreset,
+  QubitRotationAngles,
+  Vec2,
+  VectorItem,
+} from "../app/types";
 import {
   addComplex,
   argument,
@@ -42,6 +58,7 @@ import {
 } from "../math/complex";
 import { realEigenpairs2 } from "../math/eigen";
 import { det2, mat2FromColumns } from "../math/mat2";
+import { blochCoordinates, qubitProbabilities } from "../math/qubit";
 import { add, norm, scale, sub } from "../math/vec2";
 import { formatNumber, mustGetElement, readNumberInput } from "./dom";
 
@@ -134,6 +151,11 @@ function bindZoomControls(state: AppState, redraw: () => void): void {
     redraw();
   });
 
+  mustGetElement<HTMLInputElement>("show-axis-coordinates").addEventListener("change", (event) => {
+    setShowAxisCoordinates(state, (event.currentTarget as HTMLInputElement).checked);
+    redraw();
+  });
+
   mustGetElement<HTMLButtonElement>("reset-view").addEventListener("click", () => {
     resetView(state);
     syncStaticControlsFromState(state);
@@ -149,6 +171,7 @@ function syncControlsFromState(state: AppState): void {
 function syncStaticControlsFromState(state: AppState): void {
   mustGetElement<HTMLSelectElement>("mode-select").value = state.mode;
   mustGetElement<HTMLInputElement>("zoomOut").value = state.zoomOut.toString();
+  mustGetElement<HTMLInputElement>("show-axis-coordinates").checked = state.showAxisCoordinates;
 }
 
 function renderModePanel(state: AppState): void {
@@ -167,6 +190,12 @@ function renderModePanel(state: AppState): void {
   if (state.mode === "complex") {
     panel.replaceChildren(...renderComplexPanel(state));
     syncComplexReadouts(state);
+    return;
+  }
+
+  if (state.mode === "qubit") {
+    panel.replaceChildren(...renderQubitPanel(state));
+    syncQubitReadouts(state);
     return;
   }
 
@@ -226,6 +255,16 @@ function renderComplexPanel(state: AppState): HTMLElement[] {
     renderComplexConceptSection(state),
     renderComplexControlsSection(state),
     renderComplexReadoutSection(state),
+  ];
+}
+
+function renderQubitPanel(state: AppState): HTMLElement[] {
+  return [
+    renderQubitStateSection(state),
+    renderQubitProbabilitySection(),
+    renderQubitGateSection(state),
+    renderQubitRotationSection(state),
+    renderQubitPresetSection(state),
   ];
 }
 
@@ -466,6 +505,8 @@ function renderComplexReadoutSection(state: AppState): HTMLElement {
   const rows: [string, string][] = [
     ["selected", "readout-complex-selected"],
     ["value", "readout-complex-value"],
+    ["real part", "readout-complex-real"],
+    ["imag part", "readout-complex-imaginary"],
   ];
 
   if (state.complexConcepts.addition) {
@@ -490,6 +531,194 @@ function renderComplexReadoutSection(state: AppState): HTMLElement {
 
   section.append(createReadoutList(rows));
   return section;
+}
+
+function renderQubitStateSection(state: AppState): HTMLElement {
+  const section = createPanelSection("State", "info-section");
+  section.append(
+    createQubitAmplitudeEditor(state),
+    createReadoutList([
+      ["state", "readout-qubit-state"],
+      ["norm", "readout-qubit-norm"],
+      ["Bloch", "readout-qubit-bloch"],
+    ]),
+  );
+  return section;
+}
+
+function renderQubitProbabilitySection(): HTMLElement {
+  const section = createPanelSection("Probabilities");
+  const bars = document.createElement("div");
+  bars.className = "probability-bars";
+  bars.append(
+    createProbabilityBar("0", "probability-zero-fill", "probability-zero-value"),
+    createProbabilityBar("1", "probability-one-fill", "probability-one-value"),
+  );
+  section.append(bars);
+  return section;
+}
+
+function renderQubitGateSection(state: AppState): HTMLElement {
+  const section = createPanelSection("Gates");
+  const grid = document.createElement("div");
+  grid.className = "preset-grid";
+  const gates: QubitGate[] = ["X", "Y", "Z", "H", "S", "T"];
+
+  for (const gate of gates) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = gate;
+    button.addEventListener("click", () => {
+      applyQubitGate(state, gate);
+      renderModePanel(state);
+      dispatchRedraw();
+    });
+    grid.append(button);
+  }
+
+  section.append(grid);
+  return section;
+}
+
+function renderQubitRotationSection(state: AppState): HTMLElement {
+  const section = createPanelSection("Rotations");
+  section.append(
+    createQubitRotationControl(state, "x", "Rx(theta)"),
+    createQubitRotationControl(state, "y", "Ry(theta)"),
+    createQubitRotationControl(state, "z", "Rz(theta)"),
+  );
+  return section;
+}
+
+function renderQubitPresetSection(state: AppState): HTMLElement {
+  const section = createPanelSection("Presets");
+  const grid = document.createElement("div");
+  grid.className = "preset-grid";
+  const presets: [QubitPreset, string][] = [
+    ["zero", "|0>"],
+    ["one", "|1>"],
+    ["plus", "|+>"],
+    ["minus", "|->"],
+    ["i-plus", "|i+>"],
+    ["i-minus", "|i->"],
+  ];
+
+  for (const [preset, label] of presets) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.addEventListener("click", () => {
+      setQubitPreset(state, preset);
+      renderModePanel(state);
+      dispatchRedraw();
+    });
+    grid.append(button);
+  }
+
+  section.append(grid);
+  return section;
+}
+
+function createQubitAmplitudeEditor(state: AppState): HTMLElement {
+  const editor = document.createElement("div");
+  editor.className = "qubit-amplitudes";
+
+  const alphaReal = createLabeledNumberInput("alpha real", "Re", state.qubitAlpha.x);
+  const alphaImag = createLabeledNumberInput("alpha imaginary", "Im", state.qubitAlpha.y);
+  const betaReal = createLabeledNumberInput("beta real", "Re", state.qubitBeta.x);
+  const betaImag = createLabeledNumberInput("beta imaginary", "Im", state.qubitBeta.y);
+
+  const update = () => {
+    setQubitAmplitudes(
+      state,
+      { x: readInputNumber(alphaReal.input), y: readInputNumber(alphaImag.input) },
+      { x: readInputNumber(betaReal.input), y: readInputNumber(betaImag.input) },
+    );
+    renderModePanel(state);
+    dispatchRedraw();
+  };
+
+  alphaReal.input.addEventListener("change", update);
+  alphaImag.input.addEventListener("change", update);
+  betaReal.input.addEventListener("change", update);
+  betaImag.input.addEventListener("change", update);
+
+  editor.append(
+    createQubitAmplitudeRow("alpha", alphaReal.wrapper, alphaImag.wrapper),
+    createQubitAmplitudeRow("beta", betaReal.wrapper, betaImag.wrapper),
+  );
+  return editor;
+}
+
+function createQubitAmplitudeRow(
+  name: string,
+  realInput: HTMLElement,
+  imaginaryInput: HTMLElement,
+): HTMLElement {
+  const row = document.createElement("div");
+  row.className = "qubit-amplitude-row";
+
+  const label = document.createElement("span");
+  label.className = "qubit-amplitude-name";
+  label.textContent = name;
+
+  row.append(label, realInput, imaginaryInput);
+  return row;
+}
+
+function createProbabilityBar(labelText: string, fillId: string, valueId: string): HTMLElement {
+  const row = document.createElement("div");
+  row.className = "probability-row";
+
+  const label = document.createElement("span");
+  label.textContent = `P(${labelText})`;
+
+  const track = document.createElement("div");
+  track.className = "probability-track";
+
+  const fill = document.createElement("div");
+  fill.id = fillId;
+  fill.className = "probability-fill";
+  track.append(fill);
+
+  const value = document.createElement("span");
+  value.id = valueId;
+  value.className = "probability-value";
+  value.textContent = "0%";
+
+  row.append(label, track, value);
+  return row;
+}
+
+function createQubitRotationControl(
+  state: AppState,
+  axis: keyof QubitRotationAngles,
+  labelText: string,
+): HTMLElement {
+  const label = document.createElement("label");
+  label.className = "range-label";
+  label.append(document.createTextNode(`${labelText} `));
+
+  const value = document.createElement("span");
+  value.className = "range-value";
+  value.textContent = `${formatNumber(radiansToDegrees(state.qubitRotationAngles[axis]))} deg`;
+
+  const input = document.createElement("input");
+  input.type = "range";
+  input.min = "-180";
+  input.max = "180";
+  input.step = "1";
+  input.value = radiansToDegrees(state.qubitRotationAngles[axis]).toString();
+  input.addEventListener("input", (event) => {
+    const degrees = Number((event.currentTarget as HTMLInputElement).value);
+    setQubitRotationAngle(state, axis, (degrees * Math.PI) / 180);
+    value.textContent = `${formatNumber(radiansToDegrees(state.qubitRotationAngles[axis]))} deg`;
+    syncQubitReadouts(state);
+    dispatchRedraw();
+  });
+
+  label.append(value, input);
+  return label;
 }
 
 function renderComplexNumberList(state: AppState, list: HTMLElement): void {
@@ -529,8 +758,14 @@ function createComplexNumberRow(state: AppState, number: ComplexItem): HTMLEleme
 
   selectButton.append(swatch, name);
 
-  const realInput = createVectorInput(`${number.label} real`, number.value.x);
-  const imagInput = createVectorInput(`${number.label} imaginary`, number.value.y);
+  const realPart = createLabeledNumberInput(`${number.label} real`, "Re", number.value.x);
+  const imaginaryPart = createLabeledNumberInput(
+    `${number.label} imaginary`,
+    "Im",
+    number.value.y,
+  );
+  const realInput = realPart.input;
+  const imagInput = imaginaryPart.input;
 
   const updateValue = () => {
     updateComplexValue(state, number.id, {
@@ -556,7 +791,7 @@ function createComplexNumberRow(state: AppState, number: ComplexItem): HTMLEleme
     dispatchRedraw();
   });
 
-  row.append(selectButton, realInput, imagInput, deleteButton);
+  row.append(selectButton, realPart.wrapper, imaginaryPart.wrapper, deleteButton);
   return row;
 }
 
@@ -800,6 +1035,20 @@ function createVectorInput(label: string, value: number): HTMLInputElement {
   return input;
 }
 
+function createLabeledNumberInput(
+  ariaLabel: string,
+  labelText: string,
+  value: number,
+): { wrapper: HTMLElement; input: HTMLInputElement } {
+  const wrapper = document.createElement("label");
+  wrapper.className = "compact-input-label";
+  wrapper.append(document.createTextNode(labelText));
+
+  const input = createVectorInput(ariaLabel, value);
+  wrapper.append(input);
+  return { wrapper, input };
+}
+
 function createMatrixEditor(state: AppState, onInput: () => void): HTMLElement {
   const editor = document.createElement("div");
   editor.className = "matrix-editor";
@@ -1032,9 +1281,13 @@ function syncComplexReadouts(state: AppState): void {
   if (selected) {
     setTextIfPresent("readout-complex-selected", selected.label);
     setTextIfPresent("readout-complex-value", formatComplex(selected.value));
+    setTextIfPresent("readout-complex-real", formatNumber(selected.value.x));
+    setTextIfPresent("readout-complex-imaginary", formatNumber(selected.value.y));
   } else {
     setTextIfPresent("readout-complex-selected", "n/a");
     setTextIfPresent("readout-complex-value", "n/a");
+    setTextIfPresent("readout-complex-real", "n/a");
+    setTextIfPresent("readout-complex-imaginary", "n/a");
   }
 
   const [addFirst, addSecond] = getComplexAdditionNumbers(state);
@@ -1083,7 +1336,7 @@ function syncComplexReadouts(state: AppState): void {
     );
     setTextIfPresent(
       "readout-complex-rotation",
-      `${unary.label} e^(i theta) = ${formatComplex(
+      `${unary.label} e^(i${formatAngle(state.complexRotationTheta)}) = ${formatComplex(
         rotateByAngle(unary.value, state.complexRotationTheta),
       )}`,
     );
@@ -1098,6 +1351,24 @@ function syncComplexReadouts(state: AppState): void {
     setTextIfPresent("readout-complex-rotation", "n/a");
     setTextIfPresent("readout-complex-polar", "n/a");
   }
+}
+
+function syncQubitReadouts(state: AppState): void {
+  const probabilities = qubitProbabilities(state.qubitAlpha, state.qubitBeta);
+  const bloch = blochCoordinates(state.qubitAlpha, state.qubitBeta);
+  const norm = probabilities.zero + probabilities.one;
+
+  setTextIfPresent(
+    "readout-qubit-state",
+    formatQubitState(state.qubitAlpha, state.qubitBeta),
+  );
+  setTextIfPresent("readout-qubit-norm", formatNumber(norm));
+  setTextIfPresent(
+    "readout-qubit-bloch",
+    `(${formatNumber(bloch.x)}, ${formatNumber(bloch.y)}, ${formatNumber(bloch.z)})`,
+  );
+  setProbabilityIfPresent("probability-zero-fill", "probability-zero-value", probabilities.zero);
+  setProbabilityIfPresent("probability-one-fill", "probability-one-value", probabilities.one);
 }
 
 function syncEigenReadouts(state: AppState): void {
@@ -1148,7 +1419,12 @@ function readOptionalId(select: HTMLSelectElement): string | null {
 }
 
 function readMode(value: string): DojoMode {
-  if (value === "geometry" || value === "eigenvectors" || value === "complex") {
+  if (
+    value === "geometry" ||
+    value === "eigenvectors" ||
+    value === "complex" ||
+    value === "qubit"
+  ) {
     return value;
   }
   return "algebra";
@@ -1180,8 +1456,20 @@ function formatComplex(value: Vec2): string {
   return value.y < 0 ? `${real} - ${imaginary}` : `${real} + ${imaginary}`;
 }
 
+function formatQubitState(alpha: Vec2, beta: Vec2): string {
+  const alphaText = formatComplex(alpha);
+  const betaText = formatComplex(beta);
+  const betaNegative = betaText.startsWith("-");
+  const betaMagnitude = betaNegative ? betaText.slice(1) : betaText;
+  return `${alphaText}|0> ${betaNegative ? "-" : "+"} ${betaMagnitude}|1>`;
+}
+
 function formatAngle(radians: number): string {
   return `${formatNumber(radiansToDegrees(normalizeAngle(radians)))} deg`;
+}
+
+function formatPercent(value: number): string {
+  return `${formatNumber(value * 100)}%`;
 }
 
 function setTextIfPresent(id: string, text: string): void {
@@ -1189,6 +1477,14 @@ function setTextIfPresent(id: string, text: string): void {
   if (element) {
     element.textContent = text;
   }
+}
+
+function setProbabilityIfPresent(fillId: string, valueId: string, probability: number): void {
+  const fill = document.getElementById(fillId);
+  if (fill) {
+    fill.style.width = `${Math.max(0, Math.min(1, probability)) * 100}%`;
+  }
+  setTextIfPresent(valueId, formatPercent(probability));
 }
 
 function dispatchRedraw(): void {

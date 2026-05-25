@@ -5,7 +5,7 @@ export type Vec2 = {
 
 export type Mat2 = [[number, number], [number, number]];
 
-export type DojoMode = "algebra" | "geometry" | "eigenvectors" | "complex";
+export type DojoMode = "algebra" | "geometry" | "eigenvectors" | "complex" | "qubit";
 
 export type Bounds = {
   minX: number;
@@ -48,6 +48,16 @@ export type ComplexConcepts = {
   polar: boolean;
 };
 
+export type QubitRotationAngles = {
+  x: number;
+  y: number;
+  z: number;
+};
+
+export type QubitGate = "X" | "Y" | "Z" | "H" | "S" | "T";
+
+export type QubitPreset = "zero" | "one" | "plus" | "minus" | "i-plus" | "i-minus";
+
 export type AppState = {
   mode: DojoMode;
   vectors: VectorItem[];
@@ -66,6 +76,10 @@ export type AppState = {
   complexUnaryId: string | null;
   complexRotationTheta: number;
   nextComplexNumber: number;
+  qubitAlpha: Vec2;
+  qubitBeta: Vec2;
+  qubitRotationAngles: QubitRotationAngles;
+  showAxisCoordinates: boolean;
   zoomOut: number;
   pan: Vec2;
   nextVectorNumber: number;
