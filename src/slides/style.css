@@ -139,8 +139,8 @@ body {
 .title-logos img {
   display: block;
   width: auto;
-  max-width: min(66.3vw, 507px);
-  max-height: 215px;
+  max-width: min(86.2vw, 659px);
+  max-height: 280px;
   object-fit: contain;
 }
 
@@ -164,6 +164,10 @@ body {
 
 .slide-body li::marker {
   color: var(--slide-accent);
+}
+
+.pause-hidden {
+  visibility: hidden;
 }
 
 .speaker-note {
@@ -191,7 +195,7 @@ body {
 
 .mybox {
   margin: 12px 0 18px;
-  border-left: 4px solid var(--slide-accent);
+  border-radius: 8px;
   background: var(--slide-accent-soft);
   padding: 14px 16px;
 }

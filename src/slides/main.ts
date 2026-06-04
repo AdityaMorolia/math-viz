@@ -42,6 +42,7 @@ declare global {
 }
 
 const root = mustGetElement<HTMLElement>("slide-root");
+const PAUSE_MARKER = "deck-pause";
 const detachedViz = document.createElement("div");
 detachedViz.className = "detached-viz";
 document.body.append(detachedViz);
@@ -163,6 +164,7 @@ function renderActiveSlide(): void {
   const body = document.createElement("div");
   body.className = "slide-body";
   body.innerHTML = slide.body;
+  applyPauseVisibility(body, slide.pauseStep);
   text.append(body);
 
   if (slide.visual) {
@@ -243,6 +245,61 @@ function createVisual(visual: VisualSpec): HTMLElement {
   }
 
   return visualRoot;
+}
+
+function applyPauseVisibility(rootElement: HTMLElement, pauseStep: number | undefined): void {
+  if (pauseStep === undefined) {
+    return;
+  }
+
+  let currentPauseStep = 0;
+  applyPauseVisibilityToChildren(rootElement, () => currentPauseStep, (nextPauseStep) => {
+    currentPauseStep = nextPauseStep;
+  }, pauseStep);
+}
+
+function applyPauseVisibilityToChildren(
+  parent: Node,
+  getCurrentPauseStep: () => number,
+  setCurrentPauseStep: (pauseStep: number) => void,
+  activePauseStep: number,
+): void {
+  for (const node of Array.from(parent.childNodes)) {
+    const currentPauseStep = getCurrentPauseStep();
+    if (isPauseMarker(node)) {
+      setCurrentPauseStep(currentPauseStep + 1);
+      continue;
+    }
+
+    if (currentPauseStep > activePauseStep) {
+      hidePauseNode(node);
+      continue;
+    }
+
+    if (node instanceof Element) {
+      applyPauseVisibilityToChildren(node, getCurrentPauseStep, setCurrentPauseStep, activePauseStep);
+    }
+  }
+}
+
+function hidePauseNode(node: Node): void {
+  if (node instanceof Element) {
+    node.classList.add("pause-hidden");
+    node.setAttribute("aria-hidden", "true");
+    return;
+  }
+
+  if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+    const hidden = document.createElement("span");
+    hidden.className = "pause-hidden";
+    hidden.setAttribute("aria-hidden", "true");
+    hidden.textContent = node.textContent;
+    node.replaceWith(hidden);
+  }
+}
+
+function isPauseMarker(node: Node): boolean {
+  return node.nodeType === Node.COMMENT_NODE && node.textContent?.trim() === PAUSE_MARKER;
 }
 
 function createNavigation(): HTMLElement {

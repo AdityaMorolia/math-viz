@@ -11,7 +11,7 @@ import type {
 } from "../app/types";
 
 const qcampLogo = new URL("../../images/QcampLogo.svg", import.meta.url).href;
-const cqtLogo = new URL("../../images/CQT-logo-black-vertical.svg", import.meta.url).href;
+const cqtLogo = new URL("../../images/CQT-logo-colour-vertical-blacktext.svg", import.meta.url).href;
 
 export type ScenePreset = {
   mode: DojoMode;
@@ -108,6 +108,7 @@ export type SlideSpec = {
   title: string;
   subtitle?: string;
   body: string;
+  pauseStep?: number;
   visual?: VisualSpec;
   layout?: "title" | "section" | "split" | "wide";
 };
@@ -190,6 +191,9 @@ function display(source: string): string {
   return `<div class="math-line">\\[${source}\\]</div>`;
 }
 
+/** Put `${pause}` inside a slide body to create Beamer-style cumulative slides. */
+export const pause = "<!-- deck-pause -->";
+
 function vectorItem(id: string, label: string, x: number, y: number, colorIndex: number): VectorItem {
   return {
     id,
@@ -244,7 +248,7 @@ function geometryScene(matrix: Mat2, extras: Partial<ScenePreset> = {}): ScenePr
   };
 }
 
-export const SLIDES: SlideSpec[] = [
+const SOURCE_SLIDES: SlideSpec[] = [
   {
     title: "Linear Algebra and Complex Numbers",
     subtitle: "QCamp 2026",
@@ -268,6 +272,9 @@ export const SLIDES: SlideSpec[] = [
     body: `
       <ul>
         <li>Linear algebra: study of <span class="defn">vector</span> spaces.</li>
+      </ul>
+      ${pause}
+      <ul>
         <li>Vectors: A collection of numbers.</li>
       </ul>
       ${display(tex`\vec{v} = \ket{v} = \begin{pmatrix}2\\5\\1.4\\\vdots\end{pmatrix}`)}
@@ -285,6 +292,7 @@ export const SLIDES: SlideSpec[] = [
       <p>A thing with length and direction.</p>
       <p>Example: ${math(tex`\ket{v} = \begin{pmatrix}2\\1\end{pmatrix}`)}.</p>
       <p>Dimension: number of scalars.</p>
+      ${pause}
       <p>Vectors can also be built over <span class="defn">complex numbers</span>.</p>
     `,
     visual: {
@@ -297,6 +305,7 @@ export const SLIDES: SlideSpec[] = [
     layout: "split",
     body: `
       ${display(tex`\ket{v} = \begin{pmatrix}a\\b\\c\end{pmatrix} \qquad \ket{w} = \begin{pmatrix}d\\e\\f\end{pmatrix}`)}
+      ${pause}
       ${display(tex`\ket{v} + \ket{w} = \begin{pmatrix}a+d\\b+e\\c+f\end{pmatrix}`)}
     `,
     visual: {
@@ -321,6 +330,7 @@ export const SLIDES: SlideSpec[] = [
         <strong>Scaling:</strong>
         ${display(tex`k\ket{v} = \begin{pmatrix}ka\\kb\\kc\end{pmatrix}`)}
       </div>
+      ${pause}
       <p>How can we multiply two vectors together? Stay tuned...</p>
     `,
     visual: {
@@ -337,11 +347,13 @@ export const SLIDES: SlideSpec[] = [
     title: "Linear Combinations of Vectors",
     layout: "split",
     body: `
+      ${pause}
       <div class="mybox">
-        <strong>Definition:</strong> A <span class="defn">linear combination</span> of vectors is a collection
+        A <span class="defn">linear combination</span> of vectors is a collection
         ${math(tex`c_0\ket{v_0} + c_1\ket{v_1} + \cdots + c_n\ket{v_n}`)}
         where ${math(tex`c_0,\ldots,c_n`)} are scalars and ${math(tex`\ket{v_0},\ldots,\ket{v_n}`)} are vectors.
       </div>
+      ${pause}
       <p>We can define a vector as ${math(tex`\ket{\psi} = c_0\ket{v_0} + c_1\ket{v_1}`)}</p>
     `,
     visual: {
@@ -377,6 +389,7 @@ export const SLIDES: SlideSpec[] = [
     layout: "wide",
     body: `
       <p>What are the solutions to ${math(tex`x^2 - 1 = 0`)}?</p>
+      ${pause}
       <p>What about ${math(tex`x^2 + 1 = 0`)}?</p>
     `,
   },
@@ -385,10 +398,11 @@ export const SLIDES: SlideSpec[] = [
     layout: "wide",
     body: `
       <div class="mybox">
-        <strong>Definition:</strong>
         ${display(tex`i := \sqrt{-1}, \qquad i \in \I \text{ is an imaginary number}`)}
       </div>
+      ${pause}
       <p>What are the solutions to ${math(tex`x^2 + 5 = 0`)}?</p>
+      ${pause}
       <ul>
         <li>${math(tex`x = \pm\sqrt{-5} = \pm i\sqrt{5}`)}</li>
       </ul>
@@ -399,10 +413,11 @@ export const SLIDES: SlideSpec[] = [
     layout: "split",
     body: `
       <div class="mybox">
-        <strong>Definition:</strong> A <span class="defn">complex number</span> ${math(tex`z \in \C`)} has the form
+        A <span class="defn">complex number</span> ${math(tex`z \in \C`)} has the form
         ${display(tex`z = a + bi`)}
         where ${math(tex`a,b \in \R`)}
       </div>
+      ${pause}
       <ul>
         <li>${math(tex`a`)} is the real part of ${math(tex`z`)}, ${math(tex`a = \operatorname{Re}(z)`)}</li>
         <li>${math(tex`b`)} is the imaginary part of ${math(tex`z`)}, ${math(tex`b = \operatorname{Im}(z)`)}</li>
@@ -426,6 +441,7 @@ export const SLIDES: SlideSpec[] = [
         <strong>Addition:</strong>
         ${display(tex`z \pm w = (a+bi) \pm (c+di) = (a+c) + (b+d)i`)}
       </div>
+      ${pause}
       <div class="mybox">
         <strong>Multiplication:</strong>
         ${display(tex`zw = (a+bi)(c+di) = (ac-bd) + (ad+bc)i`)}
@@ -449,11 +465,14 @@ export const SLIDES: SlideSpec[] = [
     layout: "split",
     body: `
       <div class="mybox">
-        <strong>Definition:</strong> The <span class="defn">complex conjugate</span> of ${math(tex`z = a+bi`)} is ${math(tex`z^* = a-bi`)}.
+        The <span class="defn">complex conjugate</span> of ${math(tex`z = a+bi`)} is ${math(tex`z^* = a-bi`)}.
       </div>
-      <p>What is ${math(tex`zz^*`)}? ... the modulus!!</p>
+      ${pause}
+      <p>What is ${math(tex`zz^*`)}?</p>
+      ${pause}
+      <p>... the modulus!!</p>
       <div class="mybox">
-        <strong>Definition:</strong> The <span class="defn">modulus</span> of ${math(tex`z`)} is
+        The <span class="defn">modulus</span> of ${math(tex`z`)} is
         ${display(tex`|z| = \sqrt{a^2+b^2} = \sqrt{zz^*}`)}
       </div>
     `,
@@ -470,6 +489,7 @@ export const SLIDES: SlideSpec[] = [
     layout: "wide",
     body: `
       <p>How do we visualize the real numbers?</p>
+      ${pause}
       <p>What about the complex numbers?</p>
     `,
   },
@@ -521,6 +541,7 @@ export const SLIDES: SlideSpec[] = [
         <strong>Euler's Formula:</strong>
         ${display(tex`e^{i\theta} = \cos\theta + i\sin\theta`)}
       </div>
+      ${pause}
       ${display(tex`\Longrightarrow z = |z|(\cos\theta + i\sin\theta) = |z|e^{i\theta}`)}
     `,
     visual: {
@@ -537,9 +558,12 @@ export const SLIDES: SlideSpec[] = [
     layout: "wide",
     body: `
       <p>What is ${math(tex`z^n`)}?</p>
+      ${pause}
       ${display(tex`z^n = (|z|e^{i\theta})^n = |z|^n e^{in\theta} = |z|^n(\cos n\theta + i\sin n\theta)`)}
+      ${pause}
       <p>${math(tex`\Rightarrow`)} DeMoivre's Theorem!</p>
       <p>What is ${math(tex`i^i`)}?</p>
+      ${pause}
       ${display(tex`i^i = (e^{i\pi/2})^i = e^{i^2\pi/2} = e^{-\pi/2}`)}
       <p>${math(tex`\Rightarrow`)} What!?! That's a real number!!</p>
     `,
@@ -554,11 +578,12 @@ export const SLIDES: SlideSpec[] = [
     layout: "wide",
     body: `
       <div class="mybox">
-        <strong>Definition:</strong> If
+        If
         ${math(tex`\vec{v} = \ket{v} = \begin{pmatrix}a\\b\\c\end{pmatrix}`)}
         is a vector, then its <span class="defn">transpose</span> is
         ${display(tex`(\vec{v})^T = \begin{pmatrix}a & b & c\end{pmatrix}.`)}
       </div>
+      ${pause}
     `,
   },
   {
@@ -566,8 +591,9 @@ export const SLIDES: SlideSpec[] = [
     layout: "wide",
     body: `
       <p>Vectors can also have complex entries.</p>
+      ${pause}
       <div class="mybox">
-        <strong>Definition:</strong> If
+        If
         ${math(tex`\ket{v} = \begin{pmatrix}z_0\\z_1\\z_2\end{pmatrix}`)}
         is a vector in ${math(tex`\C^3`)}, then its <span class="defn">adjoint</span> is
         ${math(tex`(\ket{v})^{\dagger} = \bra{v} = \begin{pmatrix}z_0^* & z_1^* & z_2^*\end{pmatrix}`)}
@@ -581,8 +607,9 @@ export const SLIDES: SlideSpec[] = [
       <ul>
         <li>How do you multiply two vectors? What does it even mean to "multiply" two vectors?</li>
       </ul>
+      ${pause}
       <div class="mybox">
-        <strong>Definition:</strong> The <span class="defn">inner product</span> between two vectors
+        The <span class="defn">inner product</span> between two vectors
         ${math(tex`\ket{v} = \begin{pmatrix}v_0\\v_1\end{pmatrix}, \ket{w} = \begin{pmatrix}w_0\\w_1\end{pmatrix}`)}
         is
         ${display(tex`\langle v|w\rangle = \begin{pmatrix}v_0^* & v_1^*\end{pmatrix}\begin{pmatrix}w_0\\w_1\end{pmatrix} = v_0^*w_0 + v_1^*w_1`)}
@@ -597,10 +624,11 @@ export const SLIDES: SlideSpec[] = [
     layout: "wide",
     body: `
       <div class="mybox">
-        <strong>Definition:</strong> If ${math(tex`\langle v|w\rangle = 0`)} ${math(tex`\Rightarrow`)} ${math(tex`\ket{v}, \ket{w}`)} are <span class="defn">orthogonal</span>
+        If ${math(tex`\langle v|w\rangle = 0`)} ${math(tex`\Rightarrow`)} ${math(tex`\ket{v}, \ket{w}`)} are <span class="defn">orthogonal</span>
       </div>
+      ${pause}
       <div class="mybox">
-        <strong>Definition:</strong> The <span class="defn">norm</span> of a vector ${math(tex`\ket{v}`)} is ${math(tex`\lVert v\rVert = \sqrt{\langle v|v\rangle}`)}
+        The <span class="defn">norm</span> of a vector ${math(tex`\ket{v}`)} is ${math(tex`\lVert v\rVert = \sqrt{\langle v|v\rangle}`)}
       </div>
       <ul>
         <li>norm &approx; generalized length</li>
@@ -616,8 +644,9 @@ export const SLIDES: SlideSpec[] = [
         <li>How can we model how vectors change?</li>
         <li>How can we represent the action of rotating a vector</li>
       </ul>
+      ${pause}
       <div class="mybox">
-        <strong>Definition:</strong> A <span class="defn">matrix</span> is an object that linearly transforms vectors.
+        A <span class="defn">matrix</span> is an object that linearly transforms vectors.
         ${display(tex`M = \begin{bmatrix}a & b\\c & d\end{bmatrix} = \begin{bmatrix}\vec{v_0} & \vec{v_1}\end{bmatrix}`)}
       </div>
     `,
@@ -638,6 +667,7 @@ export const SLIDES: SlideSpec[] = [
         <strong>Addition:</strong>
         ${display(tex`A + B = \begin{bmatrix}a_{00}+b_{00} & a_{01}+b_{01}\\a_{10}+b_{10} & a_{11}+b_{11}\end{bmatrix}`)}
       </div>
+      ${pause}
       <p>How is this similar to vector addition?</p>
     `,
   },
@@ -684,6 +714,7 @@ export const SLIDES: SlideSpec[] = [
         <strong>Matrix Multiplication:</strong>
         ${display(tex`AB = \begin{bmatrix}a_{00}b_{00} + a_{01}b_{10} & a_{00}b_{01} + a_{01}b_{11}\\a_{10}b_{00} + a_{11}b_{10} & a_{10}b_{01} + a_{11}b_{11}\end{bmatrix}`)}
       </div>
+      ${pause}
       <p>What is ${math(tex`BA`)}?</p>
     `,
     visual: {
@@ -700,8 +731,9 @@ export const SLIDES: SlideSpec[] = [
       <ul>
         <li>How much does a matrix transform the area of a region?</li>
       </ul>
+      ${pause}
       <div class="mybox">
-        <strong>Definition:</strong> The <span class="defn">determinant</span> of a matrix is
+        The <span class="defn">determinant</span> of a matrix is
         ${display(tex`\det(A) = \det\begin{bmatrix}a & b\\c & d\end{bmatrix} = \left|\begin{matrix}a & b\\c & d\end{matrix}\right| = ad - bc`)}
       </div>
     `,
@@ -724,10 +756,14 @@ export const SLIDES: SlideSpec[] = [
     body: `
       <ul>
         <li>${math(tex`M`)} is a matrix that scales all vectors by 2 and flips them over the ${math(tex`y`)} axis. What happens to the vector ${math(tex`\ket{v} = \begin{pmatrix}0\\1\end{pmatrix}`)}?</li>
+      </ul>
+      ${pause}
+      <ul>
         <li>${math(tex`\ket{v}`)}'s direction doesn't change</li>
       </ul>
+      ${pause}
       <div class="mybox">
-        <strong>Definition:</strong> A vector ${math(tex`\ket{v}`)} is called an <span class="defn">eigenvector</span> of a matrix ${math(tex`M`)} if
+        A vector ${math(tex`\ket{v}`)} is called an <span class="defn">eigenvector</span> of a matrix ${math(tex`M`)} if
         ${display(tex`M\ket{v} = \lambda\ket{v}`)}
         the scaling factor ${math(tex`\lambda`)} is the <span class="defn">eigenvalue</span>.
       </div>
@@ -755,10 +791,12 @@ export const SLIDES: SlideSpec[] = [
         <li>How do you model the two systems together?</li>
         <li>${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix} \in \text{Lab}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix} \in \text{Environment}`)}</li>
       </ul>
+      ${pause}
       <div class="mybox">
-        <strong>Definition:</strong> The <span class="defn">Kronecker product</span> between two vectors is
+        The <span class="defn">Kronecker product</span> between two vectors is
         ${display(tex`\ket{v} \otimes \ket{w} = \begin{pmatrix}ac\\ad\\bc\\bd\end{pmatrix}`)}
       </div>
+      ${pause}
       <p>${math(tex`\ket{v} \otimes \ket{w} \in \text{Lab and Environment}`)}</p>
     `,
   },
@@ -768,9 +806,10 @@ export const SLIDES: SlideSpec[] = [
     body: `
       <p>Matrices can have complex entries. ${math(tex`M = \begin{bmatrix}z_{00} & z_{01}\\z_{10} & z_{11}\end{bmatrix}`)}</p>
       <div class="mybox">
-        <strong>Definition:</strong> The <span class="defn">Hermitian conjugate</span> of a matrix is
+        The <span class="defn">Hermitian conjugate</span> of a matrix is
         ${display(tex`M^\dagger = \begin{bmatrix}z_{00}^* & z_{10}^*\\z_{01}^* & z_{11}^*\end{bmatrix}`)}
       </div>
+      ${pause}
       <ul>
         <li>If ${math(tex`M = M^\dagger`)} ${math(tex`\Rightarrow`)} ${math(tex`M`)} is <span class="defn">Hermitian</span>.</li>
         <li>If ${math(tex`MM^\dagger = I`)} ${math(tex`\Rightarrow`)} ${math(tex`M`)} is <span class="defn">unitary</span>.</li>
@@ -782,15 +821,44 @@ export const SLIDES: SlideSpec[] = [
     layout: "wide",
     body: `
       <div class="mybox">
-        <strong>Definition:</strong> The <span class="defn">outer product</span> of two vectors ${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix}`)} is
+        The <span class="defn">outer product</span> of two vectors ${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix}`)} is
         ${display(tex`\ket{v}\bra{w} = \begin{pmatrix}a\\b\end{pmatrix}\begin{pmatrix}c^* & d^*\end{pmatrix} = \begin{bmatrix}ac^* & ad^*\\bc^* & bd^*\end{bmatrix}`)}
       </div>
+      ${pause}
       <p>What is the difference between an inner product ${math(tex`\langle v|w\rangle`)}, a Kronecker product ${math(tex`\ket{v} \otimes \ket{w}`)}, and an outer product ${math(tex`\ket{v}\bra{w}`)}?</p>
       <ul>
         <li>Inner product: 2 vectors ${math(tex`\Rightarrow`)} number</li>
+      </ul>
+      ${pause}
+      <ul>
         <li>Kronecker product: 2 vectors ${math(tex`\Rightarrow`)} vector</li>
+      </ul>
+      ${pause}
+      <ul>
         <li>Outer product: 2 vectors ${math(tex`\Rightarrow`)} matrix</li>
       </ul>
     `,
   },
 ];
+
+export const SLIDES: SlideSpec[] = expandPauses(SOURCE_SLIDES);
+
+function expandPauses(slides: SlideSpec[]): SlideSpec[] {
+  return slides.flatMap((slide) => {
+    const bodyParts = slide.body.split(pause);
+    if (bodyParts.length === 1) {
+      return [slide];
+    }
+
+    const pauseCount = bodyParts.length - 1;
+    const hasTrailingPause = bodyParts[bodyParts.length - 1].trim() === "";
+    const overlayCount = hasTrailingPause ? pauseCount : pauseCount + 1;
+    const overlays: SlideSpec[] = [];
+
+    for (let pauseStep = 0; pauseStep < overlayCount; pauseStep += 1) {
+      overlays.push({ ...slide, pauseStep });
+    }
+
+    return overlays;
+  });
+}
