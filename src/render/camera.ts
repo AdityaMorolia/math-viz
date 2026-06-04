@@ -1,6 +1,6 @@
 import type { AppState, Bounds, Camera, Vec2 } from "../app/types";
 
-const BASE_SCALE = 200;
+export const BASE_SCALE = 200;
 
 export function makeCameraFromState(state: AppState, width: number, height: number): Camera {
   return {

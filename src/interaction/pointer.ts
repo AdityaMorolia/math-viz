@@ -15,6 +15,7 @@ export function bindPointerInteractions(
   state: AppState,
   redraw: () => void,
   syncControls: () => void,
+  onUserCameraChange?: () => void,
 ): void {
   let dragMode: DragMode = { type: "none" };
 
@@ -79,6 +80,7 @@ export function bindPointerInteractions(
       x: state.pan.x - dx / camera.scale,
       y: state.pan.y + dy / camera.scale,
     };
+    onUserCameraChange?.();
     dragMode = { type: "pan", previous: screenPoint };
     redraw();
   });

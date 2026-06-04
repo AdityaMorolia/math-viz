@@ -1,0 +1,1118 @@
+import "../style.css";
+import "./style.css";
+import {
+  createInitialState,
+  getComplexAdditionNumbers,
+  getComplexMultiplicationNumbers,
+  getComplexUnaryNumber,
+  getPairVectors,
+  getScalarVector,
+  getSelectedComplexNumber,
+  getSelectedVector,
+  setComplexRotationTheta,
+  setMode,
+  setScalarMultiplier,
+  setScalarVector,
+  setTransformMatrix,
+  setTransformT,
+  setZoomOut,
+  updateComplexValue,
+  updateVectorValue,
+} from "../app/state";
+import type { AppState, Bounds, ComplexItem, Mat2, PairSelection, Vec2, VectorItem } from "../app/types";
+import { bindPointerInteractions } from "../interaction/pointer";
+import {
+  addComplex,
+  argument,
+  conjugateComplex,
+  modulus,
+  multiplyComplex,
+  radiansToDegrees,
+  rotateByAngle,
+} from "../math/complex";
+import { applyMat2, det2, IDENTITY_2, lerpMat2, mat2FromColumns } from "../math/mat2";
+import { dot, norm, scale } from "../math/vec2";
+import { BASE_SCALE } from "../render/camera";
+import { createRenderer } from "../render/renderer";
+import { SLIDES } from "./deck";
+import type {
+  ControlSpec,
+  MatrixPresetSpec,
+  ReadoutKind,
+  SceneFitSpec,
+  ScenePreset,
+  SlideSpec,
+  VisualSpec,
+} from "./deck";
+
+type SyncCallback = () => void;
+
+declare global {
+  interface Window {
+    MathJax?: {
+      typesetPromise?: (elements?: Element[]) => Promise<void>;
+    };
+  }
+}
+
+const root = mustGetElement<HTMLElement>("slide-root");
+const detachedViz = document.createElement("div");
+detachedViz.className = "detached-viz";
+document.body.append(detachedViz);
+
+const vizHost = document.createElement("div");
+vizHost.className = "slide-viz-host";
+
+const canvas = document.createElement("canvas");
+canvas.className = "slide-canvas";
+canvas.setAttribute("aria-label", "Math visualization");
+vizHost.append(canvas);
+detachedViz.append(vizHost);
+
+const state = createInitialState();
+const renderer = createRenderer(canvas, null, state);
+
+let activeIndex = indexFromHash();
+let activeReadoutKind: ReadoutKind | null = null;
+let activeReadoutElement: HTMLElement | null = null;
+let activeControlsElement: HTMLElement | null = null;
+let activeSyncCallbacks: SyncCallback[] = [];
+let activeHasCanvas = false;
+let activeFitSpec: SceneFitSpec | false | null = null;
+let activeVizSlot: HTMLElement | null = null;
+let fitFrame = 0;
+let userAdjustedCamera = false;
+
+const fitObserver = new ResizeObserver(() => {
+  scheduleFitAndRedraw();
+});
+
+const redrawAndSync = (options: { fit?: boolean } = {}): void => {
+  syncFromState();
+  if (activeHasCanvas) {
+    if (options.fit) {
+      fitCanvasToActiveScene();
+    }
+    renderer.redraw();
+  }
+};
+
+const syncFromState = (): void => {
+  for (const sync of activeSyncCallbacks) {
+    sync();
+  }
+  renderActiveReadout();
+};
+
+bindPointerInteractions(canvas, state, renderer.redraw, syncFromState, () => {
+  userAdjustedCamera = true;
+});
+renderActiveSlide();
+
+window.addEventListener("hashchange", () => {
+  const nextIndex = indexFromHash();
+  if (nextIndex !== activeIndex) {
+    activeIndex = nextIndex;
+    renderActiveSlide();
+  }
+});
+
+window.addEventListener("keydown", (event) => {
+  if (isEditingTarget(event.target)) {
+    return;
+  }
+
+  if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+    event.preventDefault();
+    goToSlide(activeIndex + 1);
+    return;
+  }
+
+  if (event.key === "ArrowLeft" || event.key === "PageUp") {
+    event.preventDefault();
+    goToSlide(activeIndex - 1);
+    return;
+  }
+
+  if (event.key === "Home") {
+    event.preventDefault();
+    goToSlide(0);
+    return;
+  }
+
+  if (event.key === "End") {
+    event.preventDefault();
+    goToSlide(SLIDES.length - 1);
+  }
+});
+
+function renderActiveSlide(): void {
+  const slide = SLIDES[activeIndex];
+  fitObserver.disconnect();
+  cancelAnimationFrame(fitFrame);
+  activeHasCanvas = false;
+  activeFitSpec = null;
+  activeVizSlot = null;
+  userAdjustedCamera = false;
+  activeReadoutKind = null;
+  activeReadoutElement = null;
+  activeControlsElement = null;
+  activeSyncCallbacks = [];
+  detachedViz.append(vizHost);
+
+  const shell = document.createElement("div");
+  shell.className = "slide-shell";
+
+  const progress = document.createElement("div");
+  progress.className = "slide-progress";
+  progress.append(createProgressBar());
+
+  const article = document.createElement("article");
+  article.className = `slide slide-${slide.layout ?? "split"} ${
+    slide.visual ? "slide-has-visual" : "slide-no-visual"
+  }`;
+
+  const text = document.createElement("section");
+  text.className = "slide-text";
+  text.append(createTitleBlock(slide));
+
+  const body = document.createElement("div");
+  body.className = "slide-body";
+  body.innerHTML = slide.body;
+  text.append(body);
+
+  if (slide.visual) {
+    const visual = createVisual(slide.visual);
+    if (activeControlsElement) {
+      text.append(activeControlsElement);
+    }
+    article.append(text, visual);
+  } else {
+    article.append(text);
+  }
+
+  shell.append(progress, article, createNavigation());
+  root.replaceChildren(shell);
+
+  if (slide.visual?.kind === "canvas") {
+    if (activeVizSlot) {
+      fitObserver.observe(activeVizSlot);
+    }
+    fitObserver.observe(shell);
+    scheduleFitAndRedraw();
+  }
+  void typesetMath(shell).then(() => {
+    scheduleFitAndRedraw();
+  });
+}
+
+function createTitleBlock(slide: SlideSpec): HTMLElement {
+  const header = document.createElement("header");
+  header.className = "slide-header";
+
+  const title = document.createElement("h1");
+  title.innerHTML = slide.title;
+  header.append(title);
+
+  if (slide.subtitle) {
+    const subtitle = document.createElement("p");
+    subtitle.className = "slide-subtitle";
+    subtitle.textContent = slide.subtitle;
+    header.append(subtitle);
+  }
+
+  return header;
+}
+
+function createVisual(visual: VisualSpec): HTMLElement {
+  const visualRoot = document.createElement("section");
+  visualRoot.className = "slide-visual";
+
+  if (visual.kind === "image") {
+    const figure = document.createElement("figure");
+    figure.className = visual.compact ? "image-figure image-figure-compact" : "image-figure";
+
+    const image = document.createElement("img");
+    image.src = visual.src;
+    image.alt = visual.alt;
+    figure.append(image);
+
+    if (visual.credit) {
+      const credit = document.createElement("figcaption");
+      credit.textContent = visual.credit;
+      figure.append(credit);
+    }
+
+    visualRoot.append(figure);
+    return visualRoot;
+  }
+
+  applyScenePreset(visual.scene);
+  activeHasCanvas = true;
+  activeFitSpec = visual.fit ?? {};
+
+  const slot = document.createElement("div");
+  slot.className = "viz-slot";
+  slot.append(vizHost);
+  activeVizSlot = slot;
+  visualRoot.append(slot);
+
+  if (visual.controls?.length || visual.readout) {
+    const panel = document.createElement("aside");
+    panel.className = "mini-panel";
+
+    if (visual.controls?.length) {
+      for (const control of visual.controls) {
+        panel.append(createControl(control));
+      }
+    }
+
+    if (visual.readout) {
+      activeReadoutKind = visual.readout;
+      activeReadoutElement = document.createElement("div");
+      activeReadoutElement.className = "readout-card";
+      panel.append(activeReadoutElement);
+    }
+
+    activeControlsElement = panel;
+  }
+
+  return visualRoot;
+}
+
+function createNavigation(): HTMLElement {
+  const nav = document.createElement("nav");
+  nav.className = "slide-nav";
+
+  const previous = document.createElement("button");
+  previous.type = "button";
+  previous.textContent = "Previous";
+  previous.disabled = activeIndex === 0;
+  previous.addEventListener("click", () => goToSlide(activeIndex - 1));
+
+  const reset = document.createElement("button");
+  reset.type = "button";
+  reset.textContent = "Reset slide";
+  reset.addEventListener("click", renderActiveSlide);
+
+  const counter = document.createElement("div");
+  counter.className = "slide-counter";
+  counter.textContent = `${activeIndex + 1} / ${SLIDES.length}`;
+
+  const next = document.createElement("button");
+  next.type = "button";
+  next.textContent = "Next";
+  next.disabled = activeIndex === SLIDES.length - 1;
+  next.addEventListener("click", () => goToSlide(activeIndex + 1));
+
+  nav.append(previous, reset, counter, next);
+  return nav;
+}
+
+function createProgressBar(): HTMLElement {
+  const bar = document.createElement("div");
+  bar.className = "slide-progress-bar";
+  bar.style.width = `${((activeIndex + 1) / SLIDES.length) * 100}%`;
+  return bar;
+}
+
+function createControl(control: ControlSpec): HTMLElement {
+  if (control.kind === "scalar") {
+    return createScalarControl(control);
+  }
+
+  if (control.kind === "linear-combo") {
+    return createLinearComboControl(control);
+  }
+
+  if (control.kind === "matrix-presets") {
+    return createMatrixPresetControl(control.presets);
+  }
+
+  if (control.kind === "transform") {
+    return createTransformControl(control.label);
+  }
+
+  if (control.kind === "complex-angle") {
+    return createComplexAngleControl(control);
+  }
+
+  if (control.kind === "complex-i-powers") {
+    return createComplexIPowersControl(control.multiplierId);
+  }
+
+  return createComplexPowerControl(control);
+}
+
+function createScalarControl(control: Extract<ControlSpec, { kind: "scalar" }>): HTMLElement {
+  const section = createControlSection(control.label);
+  const value = document.createElement("span");
+  value.className = "control-value";
+
+  const input = document.createElement("input");
+  input.type = "range";
+  input.min = control.min.toString();
+  input.max = control.max.toString();
+  input.step = control.step.toString();
+  input.value = state.scalarMultiplier.toString();
+
+  input.addEventListener("input", () => {
+    setScalarMultiplier(state, Number(input.value));
+    redrawAndSync({ fit: true });
+  });
+
+  section.append(value, input);
+  activeSyncCallbacks.push(() => {
+    input.value = state.scalarMultiplier.toString();
+    value.textContent = formatNumber(state.scalarMultiplier);
+  });
+
+  return section;
+}
+
+function createLinearComboControl(
+  control: Extract<ControlSpec, { kind: "linear-combo" }>,
+): HTMLElement {
+  const section = createControlSection("Linear combination");
+  const first = createLabeledRange("c0", control.firstInitial, -3, 3, 0.05);
+  const second = createLabeledRange("c1", control.secondInitial, -3, 3, 0.05);
+
+  const updateVectors = (): void => {
+    const c0 = Number(first.input.value);
+    const c1 = Number(second.input.value);
+    updateVectorValue(state, control.firstId, scale(control.firstBase, c0));
+    updateVectorValue(state, control.secondId, scale(control.secondBase, c1));
+    first.value.textContent = formatNumber(c0);
+    second.value.textContent = formatNumber(c1);
+  };
+
+  first.input.addEventListener("input", () => {
+    updateVectors();
+    redrawAndSync({ fit: true });
+  });
+  second.input.addEventListener("input", () => {
+    updateVectors();
+    redrawAndSync({ fit: true });
+  });
+
+  section.append(first.row, second.row);
+  updateVectors();
+  activeSyncCallbacks.push(() => {
+    first.value.textContent = formatNumber(Number(first.input.value));
+    second.value.textContent = formatNumber(Number(second.input.value));
+  });
+
+  return section;
+}
+
+function createMatrixPresetControl(presets: MatrixPresetSpec[]): HTMLElement {
+  const section = createControlSection("Matrix presets");
+  const buttons = document.createElement("div");
+  buttons.className = "button-grid";
+
+  const presetButtons: Array<{ preset: MatrixPresetSpec; button: HTMLButtonElement }> = [];
+  for (const preset of presets) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = preset.label;
+    button.addEventListener("click", () => {
+      setTransformMatrix(state, preset.matrix);
+      setTransformT(state, preset.transformT ?? 1);
+      redrawAndSync({ fit: true });
+    });
+    presetButtons.push({ preset, button });
+    buttons.append(button);
+  }
+
+  section.append(buttons);
+  activeSyncCallbacks.push(() => {
+    for (const { preset, button } of presetButtons) {
+      button.classList.toggle("active", matricesEqual(state.transformMatrix, preset.matrix));
+    }
+  });
+
+  return section;
+}
+
+function createTransformControl(label: string): HTMLElement {
+  const section = createControlSection(label);
+  const value = document.createElement("span");
+  value.className = "control-value";
+
+  const input = document.createElement("input");
+  input.type = "range";
+  input.min = "0";
+  input.max = "1";
+  input.step = "0.01";
+  input.value = state.transformT.toString();
+  input.addEventListener("input", () => {
+    setTransformT(state, Number(input.value));
+    redrawAndSync({ fit: true });
+  });
+
+  section.append(value, input);
+  activeSyncCallbacks.push(() => {
+    input.value = state.transformT.toString();
+    value.textContent = `${formatNumber(state.transformT * 100)}%`;
+  });
+
+  return section;
+}
+
+function createComplexAngleControl(
+  control: Extract<ControlSpec, { kind: "complex-angle" }>,
+): HTMLElement {
+  const section = createControlSection(control.label);
+  const value = document.createElement("span");
+  value.className = "control-value";
+
+  const input = document.createElement("input");
+  input.type = "range";
+  input.min = "-3.14159";
+  input.max = "3.14159";
+  input.step = "0.01";
+  input.value = control.initialTheta.toString();
+
+  const updateAngle = (): void => {
+    const theta = Number(input.value);
+    updateComplexValue(state, control.targetId, { x: Math.cos(theta), y: Math.sin(theta) });
+    setComplexRotationTheta(state, theta);
+    value.textContent = `${formatNumber(radiansToDegrees(theta))} deg`;
+  };
+
+  input.addEventListener("input", () => {
+    updateAngle();
+    redrawAndSync({ fit: true });
+  });
+
+  section.append(value, input);
+  updateAngle();
+  activeSyncCallbacks.push(() => {
+    const selected = getSelectedComplexNumber(state);
+    if (selected?.id === control.targetId) {
+      input.value = argument(selected.value).toString();
+    }
+    value.textContent = `${formatNumber(radiansToDegrees(Number(input.value)))} deg`;
+  });
+
+  return section;
+}
+
+function createComplexIPowersControl(multiplierId: string): HTMLElement {
+  const section = createControlSection("Multiply by");
+  const buttons = document.createElement("div");
+  buttons.className = "button-grid four-up";
+  const powers = [
+    { label: "i", value: { x: 0, y: 1 } },
+    { label: "i^2", value: { x: -1, y: 0 } },
+    { label: "i^3", value: { x: 0, y: -1 } },
+    { label: "i^4", value: { x: 1, y: 0 } },
+  ];
+
+  const buttonRefs: Array<{ value: Vec2; button: HTMLButtonElement }> = [];
+  for (const power of powers) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = power.label;
+    button.addEventListener("click", () => {
+      updateComplexValue(state, multiplierId, power.value);
+      const item = state.complexNumbers.find((number) => number.id === multiplierId);
+      if (item) {
+        item.label = power.label;
+      }
+      redrawAndSync({ fit: true });
+    });
+    buttonRefs.push({ value: power.value, button });
+    buttons.append(button);
+  }
+
+  section.append(buttons);
+  activeSyncCallbacks.push(() => {
+    const item = state.complexNumbers.find((number) => number.id === multiplierId);
+    for (const ref of buttonRefs) {
+      ref.button.classList.toggle("active", !!item && vectorsEqual(item.value, ref.value));
+    }
+  });
+
+  return section;
+}
+
+function createComplexPowerControl(
+  control: Extract<ControlSpec, { kind: "complex-power" }>,
+): HTMLElement {
+  const section = createControlSection("Power n");
+  const range = createLabeledRange("n", control.initialPower, 1, 8, 1);
+
+  const syncPower = (): void => {
+    const power = Math.round(Number(range.input.value));
+    const base = state.complexNumbers.find((number) => number.id === control.baseId);
+    const derived = state.complexNumbers.find((number) => number.id === control.derivedId);
+    if (!base || !derived) {
+      return;
+    }
+    derived.value = complexPower(base.value, power);
+    derived.label = `${base.label}^${power}`;
+    range.input.value = power.toString();
+    range.value.textContent = power.toString();
+  };
+
+  range.input.addEventListener("input", () => {
+    syncPower();
+    redrawAndSync({ fit: true });
+  });
+
+  section.append(range.row);
+  activeSyncCallbacks.push(syncPower);
+  syncPower();
+
+  return section;
+}
+
+function createControlSection(title: string): HTMLElement {
+  const section = document.createElement("section");
+  section.className = "control-section";
+
+  const heading = document.createElement("div");
+  heading.className = "control-title";
+  heading.textContent = title;
+  section.append(heading);
+
+  return section;
+}
+
+function createLabeledRange(
+  label: string,
+  initial: number,
+  min: number,
+  max: number,
+  step: number,
+): { row: HTMLElement; input: HTMLInputElement; value: HTMLElement } {
+  const row = document.createElement("label");
+  row.className = "range-row";
+
+  const name = document.createElement("span");
+  name.textContent = label;
+
+  const value = document.createElement("span");
+  value.className = "control-value";
+  value.textContent = formatNumber(initial);
+
+  const input = document.createElement("input");
+  input.type = "range";
+  input.min = min.toString();
+  input.max = max.toString();
+  input.step = step.toString();
+  input.value = initial.toString();
+
+  row.append(name, value, input);
+  return { row, input, value };
+}
+
+function applyScenePreset(scene: ScenePreset): void {
+  const fresh = createInitialState();
+  Object.assign(state, fresh);
+
+  state.vectors = cloneVectors(scene.vectors ?? fresh.vectors);
+  state.complexNumbers = cloneComplexItems(scene.complexNumbers ?? fresh.complexNumbers);
+  state.selectedVectorId = scene.selectedVectorId ?? state.vectors[0]?.id ?? null;
+  state.selectedComplexId = scene.selectedComplexId ?? state.complexNumbers[0]?.id ?? null;
+  state.pairSelection = clonePair(scene.pairSelection ?? fresh.pairSelection);
+  state.complexAdditionSelection = clonePair(scene.complexAdditionSelection ?? fresh.complexAdditionSelection);
+  state.complexMultiplicationSelection = clonePair(
+    scene.complexMultiplicationSelection ?? fresh.complexMultiplicationSelection,
+  );
+  state.complexUnaryId = scene.complexUnaryId ?? state.complexNumbers[0]?.id ?? null;
+  state.complexConcepts = {
+    ...fresh.complexConcepts,
+    ...scene.complexConcepts,
+  };
+  state.showComponentLegs = scene.showComponentLegs ?? fresh.showComponentLegs;
+  state.showAxisCoordinates = scene.showAxisCoordinates ?? fresh.showAxisCoordinates;
+  state.pan = cloneVec2(scene.pan ?? fresh.pan);
+  state.nextVectorNumber = state.vectors.length + 1;
+  state.nextComplexNumber = state.complexNumbers.length + 1;
+
+  setMode(state, scene.mode);
+  setZoomOut(state, scene.zoomOut ?? fresh.zoomOut);
+  if (scene.transformMatrix) {
+    setTransformMatrix(state, scene.transformMatrix);
+  }
+  setTransformT(state, scene.transformT ?? fresh.transformT);
+  setScalarMultiplier(state, scene.scalarMultiplier ?? fresh.scalarMultiplier);
+  setScalarVector(state, scene.scalarVectorId ?? fresh.scalarVectorId);
+  setComplexRotationTheta(state, scene.complexRotationTheta ?? fresh.complexRotationTheta);
+}
+
+function scheduleFitAndRedraw(): void {
+  if (!activeHasCanvas) {
+    return;
+  }
+
+  cancelAnimationFrame(fitFrame);
+  fitFrame = requestAnimationFrame(() => {
+    fitFrame = 0;
+    fitCanvasToActiveScene(true);
+    syncFromState();
+    renderer.redraw();
+  });
+}
+
+function fitCanvasToActiveScene(force = false): void {
+  if (!activeHasCanvas || activeFitSpec === false) {
+    return;
+  }
+
+  if (userAdjustedCamera && !force) {
+    return;
+  }
+
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) {
+    return;
+  }
+
+  const spec = activeFitSpec ?? {};
+  const explicitBounds = resolveFitBounds(spec);
+  const bounds = expandBoundsToMinSpan(explicitBounds ?? computeSceneBounds(state), spec.minWorldSpan ?? 1.85);
+  const worldWidth = Math.max(0.01, bounds.maxX - bounds.minX);
+  const worldHeight = Math.max(0.01, bounds.maxY - bounds.minY);
+  const paddingFactor = spec.padding ?? 0.84;
+  const rawScale = Math.min(rect.width / worldWidth, rect.height / worldHeight) * paddingFactor;
+  const nextScale = clamp(rawScale, spec.minScale ?? 64, spec.maxScale ?? 260);
+
+  state.pan = {
+    x: (bounds.minX + bounds.maxX) / 2,
+    y: (bounds.minY + bounds.maxY) / 2,
+  };
+  setZoomOut(state, Math.log2(BASE_SCALE / nextScale));
+}
+
+function resolveFitBounds(spec: SceneFitSpec): Bounds | null {
+  if (!spec.bounds) {
+    return null;
+  }
+
+  return typeof spec.bounds === "function" ? spec.bounds() : spec.bounds;
+}
+
+function computeSceneBounds(appState: AppState): Bounds {
+  const builder = createBoundsBuilder();
+  includePoint(builder, { x: 0, y: 0 });
+
+  if (appState.mode === "complex") {
+    includeComplexBounds(builder, appState);
+  } else {
+    includeVectorBounds(builder, appState);
+  }
+
+  return builder.seen ? builder : { minX: -1, maxX: 1, minY: -1, maxY: 1 };
+}
+
+function includeVectorBounds(builder: BoundsBuilder, appState: AppState): void {
+  for (const vector of appState.vectors) {
+    includePoint(builder, vector.value);
+  }
+
+  const [first, second] = getPairVectors(appState);
+  if (first && second) {
+    includePoint(builder, addVec2(first.value, second.value));
+    includePoint(builder, { x: first.value.x - second.value.x, y: first.value.y - second.value.y });
+  }
+
+  const scalarVector = getScalarVector(appState);
+  if (scalarVector) {
+    includePoint(builder, scale(scalarVector.value, appState.scalarMultiplier));
+  }
+
+  if (appState.mode === "geometry" || appState.mode === "eigenvectors") {
+    const matrix =
+      appState.mode === "geometry"
+        ? lerpMat2(IDENTITY_2, appState.transformMatrix, appState.transformT)
+        : appState.transformMatrix;
+
+    for (const vector of appState.vectors) {
+      includePoint(builder, applyMat2(matrix, vector.value));
+    }
+
+    const focusPoints: Vec2[] = [
+      { x: -1, y: -1 },
+      { x: -1, y: 1 },
+      { x: 1, y: -1 },
+      { x: 1, y: 1 },
+      { x: 1.4, y: 0 },
+      { x: -1.4, y: 0 },
+      { x: 0, y: 1.4 },
+      { x: 0, y: -1.4 },
+    ];
+
+    for (const point of focusPoints) {
+      includePoint(builder, point);
+      includePoint(builder, applyMat2(matrix, point));
+    }
+  }
+}
+
+function includeComplexBounds(builder: BoundsBuilder, appState: AppState): void {
+  for (const number of appState.complexNumbers) {
+    includePoint(builder, number.value);
+  }
+
+  if (appState.complexConcepts.addition) {
+    const [first, second] = getComplexAdditionNumbers(appState);
+    if (first && second) {
+      includePoint(builder, addComplex(first.value, second.value));
+    }
+  }
+
+  if (appState.complexConcepts.multiplication) {
+    const [first, second] = getComplexMultiplicationNumbers(appState);
+    if (first && second) {
+      includePoint(builder, multiplyComplex(first.value, second.value));
+    }
+  }
+
+  const unary = getComplexUnaryNumber(appState);
+  if (!unary) {
+    return;
+  }
+
+  if (appState.complexConcepts.conjugate) {
+    includePoint(builder, conjugateComplex(unary.value));
+  }
+
+  if (appState.complexConcepts.rotation) {
+    includePoint(builder, rotateByAngle(unary.value, appState.complexRotationTheta));
+  }
+
+  if (appState.complexConcepts.polar) {
+    const radius = modulus(unary.value);
+    includePoint(builder, { x: radius, y: radius });
+    includePoint(builder, { x: -radius, y: -radius });
+  }
+}
+
+type BoundsBuilder = Bounds & {
+  seen: boolean;
+};
+
+function createBoundsBuilder(): BoundsBuilder {
+  return {
+    minX: Infinity,
+    maxX: -Infinity,
+    minY: Infinity,
+    maxY: -Infinity,
+    seen: false,
+  };
+}
+
+function includePoint(bounds: BoundsBuilder, point: Vec2): void {
+  bounds.minX = Math.min(bounds.minX, point.x);
+  bounds.maxX = Math.max(bounds.maxX, point.x);
+  bounds.minY = Math.min(bounds.minY, point.y);
+  bounds.maxY = Math.max(bounds.maxY, point.y);
+  bounds.seen = true;
+}
+
+function addVec2(first: Vec2, second: Vec2): Vec2 {
+  return {
+    x: first.x + second.x,
+    y: first.y + second.y,
+  };
+}
+
+function expandBoundsToMinSpan(bounds: Bounds, minSpan: number): Bounds {
+  const width = bounds.maxX - bounds.minX;
+  const height = bounds.maxY - bounds.minY;
+  const centerX = (bounds.minX + bounds.maxX) / 2;
+  const centerY = (bounds.minY + bounds.maxY) / 2;
+  const nextWidth = Math.max(width, minSpan);
+  const nextHeight = Math.max(height, minSpan);
+
+  return {
+    minX: centerX - nextWidth / 2,
+    maxX: centerX + nextWidth / 2,
+    minY: centerY - nextHeight / 2,
+    maxY: centerY + nextHeight / 2,
+  };
+}
+
+function renderActiveReadout(): void {
+  if (!activeReadoutElement || !activeReadoutKind) {
+    return;
+  }
+
+  activeReadoutElement.innerHTML = renderReadout(activeReadoutKind);
+}
+
+function renderReadout(kind: ReadoutKind): string {
+  if (kind === "selected-vector") {
+    const vector = getSelectedVector(state);
+    if (!vector) {
+      return readoutRows([["vector", "n/a"]]);
+    }
+    return readoutRows([
+      [vector.label, formatVec(vector.value)],
+      ["length", formatNumber(norm(vector.value))],
+    ]);
+  }
+
+  if (kind === "pair" || kind === "linear-combo") {
+    const [first, second] = getPairVectors(state);
+    if (!first || !second) {
+      return readoutRows([["pair", "choose two vectors"]]);
+    }
+    const sum = { x: first.value.x + second.value.x, y: first.value.y + second.value.y };
+    return readoutRows([
+      [`${first.label}+${second.label}`, formatVec(sum)],
+      [`${first.label}-${second.label}`, formatVec({ x: first.value.x - second.value.x, y: first.value.y - second.value.y })],
+    ]);
+  }
+
+  if (kind === "scalar") {
+    const vector = getScalarVector(state);
+    if (!vector) {
+      return readoutRows([["scaled", "n/a"]]);
+    }
+    return readoutRows([
+      ["k", formatNumber(state.scalarMultiplier)],
+      [`k${vector.label}`, formatVec(scale(vector.value, state.scalarMultiplier))],
+    ]);
+  }
+
+  if (kind === "inner-product") {
+    const [first, second] = firstTwoVectors(state);
+    if (!first || !second) {
+      return readoutRows([["inner", "n/a"]]);
+    }
+    return readoutRows([
+      [`<${first.label}|${second.label}>`, formatNumber(dot(first.value, second.value))],
+      [`||${first.label}||`, formatNumber(norm(first.value))],
+      [`||${second.label}||`, formatNumber(norm(second.value))],
+    ]);
+  }
+
+  if (kind === "complex") {
+    return readoutRows(state.complexNumbers.map((number) => [number.label, formatComplex(number.value)]));
+  }
+
+  if (kind === "complex-arithmetic") {
+    const [first, second] = firstTwoComplex(state);
+    if (!first || !second) {
+      return readoutRows([["complex", "n/a"]]);
+    }
+    return readoutRows([
+      [`${first.label}+${second.label}`, formatComplex(addComplex(first.value, second.value))],
+      [`${first.label}${second.label}`, formatComplex(multiplyComplex(first.value, second.value))],
+    ]);
+  }
+
+  if (kind === "complex-polar") {
+    const number = getSelectedComplexNumber(state);
+    if (!number) {
+      return readoutRows([["polar", "n/a"]]);
+    }
+    return readoutRows([
+      [number.label, formatComplex(number.value)],
+      ["|z|", formatNumber(modulus(number.value))],
+      ["theta", `${formatNumber(radiansToDegrees(argument(number.value)))} deg`],
+    ]);
+  }
+
+  if (kind === "matrix") {
+    const vector = getSelectedVector(state);
+    const rows: Array<[string, string]> = [
+      ["M", formatMatrix(state.transformMatrix)],
+      ["det(M)", formatNumber(det2(state.transformMatrix))],
+    ];
+    if (vector) {
+      rows.push(["Mv", formatVec(applyMat2(state.transformMatrix, vector.value))]);
+    }
+    return readoutRows(rows);
+  }
+
+  if (kind === "determinant") {
+    const [first, second] = firstTwoVectors(state);
+    if (!first || !second) {
+      return readoutRows([["det", "n/a"]]);
+    }
+    const matrix = mat2FromColumns(first.value, second.value);
+    return readoutRows([
+      ["A", formatMatrix(matrix)],
+      ["det(A)", formatNumber(det2(matrix))],
+      ["area", formatNumber(Math.abs(det2(matrix)))],
+    ]);
+  }
+
+  if (kind === "matrix-product") {
+    return readoutRows([
+      ["current", formatMatrix(state.transformMatrix)],
+      ["det", formatNumber(det2(state.transformMatrix))],
+    ]);
+  }
+
+  const [first, second] = firstTwoVectors(state);
+  if (!first || !second) {
+    return readoutRows([["products", "n/a"]]);
+  }
+  return readoutRows([
+    [`<${first.label}|${second.label}>`, formatNumber(dot(first.value, second.value))],
+    [`${first.label} tensor ${second.label}`, formatColumn([
+      first.value.x * second.value.x,
+      first.value.x * second.value.y,
+      first.value.y * second.value.x,
+      first.value.y * second.value.y,
+    ])],
+    [`${first.label}${second.label}^T`, formatMatrix([
+      [first.value.x * second.value.x, first.value.x * second.value.y],
+      [first.value.y * second.value.x, first.value.y * second.value.y],
+    ])],
+  ]);
+}
+
+function readoutRows(rows: Array<[string, string]>): string {
+  return `<dl>${rows
+    .map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
+    .join("")}</dl>`;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function goToSlide(index: number): void {
+  const nextIndex = clamp(index, 0, SLIDES.length - 1);
+  if (nextIndex === activeIndex) {
+    return;
+  }
+  activeIndex = nextIndex;
+  window.location.hash = `slide-${activeIndex + 1}`;
+  renderActiveSlide();
+}
+
+function indexFromHash(): number {
+  const match = window.location.hash.match(/slide-(\d+)/);
+  const parsed = match ? Number(match[1]) - 1 : 0;
+  return clamp(Number.isFinite(parsed) ? parsed : 0, 0, SLIDES.length - 1);
+}
+
+function firstTwoVectors(appState: AppState): [VectorItem | null, VectorItem | null] {
+  return [appState.vectors[0] ?? null, appState.vectors[1] ?? null];
+}
+
+function firstTwoComplex(appState: AppState): [ComplexItem | null, ComplexItem | null] {
+  return [appState.complexNumbers[0] ?? null, appState.complexNumbers[1] ?? null];
+}
+
+function complexPower(value: Vec2, power: number): Vec2 {
+  let result = { x: 1, y: 0 };
+  for (let index = 0; index < power; index += 1) {
+    result = multiplyComplex(result, value);
+  }
+  return result;
+}
+
+function cloneVectors(vectors: VectorItem[]): VectorItem[] {
+  return vectors.map((vector) => ({
+    ...vector,
+    value: cloneVec2(vector.value),
+  }));
+}
+
+function cloneComplexItems(items: ComplexItem[]): ComplexItem[] {
+  return items.map((item) => ({
+    ...item,
+    value: cloneVec2(item.value),
+  }));
+}
+
+function clonePair(pair: PairSelection): PairSelection {
+  return {
+    firstId: pair.firstId,
+    secondId: pair.secondId,
+  };
+}
+
+function cloneVec2(value: Vec2): Vec2 {
+  return { x: value.x, y: value.y };
+}
+
+function matricesEqual(a: Mat2, b: Mat2): boolean {
+  const diff =
+    Math.abs(a[0][0] - b[0][0]) +
+    Math.abs(a[0][1] - b[0][1]) +
+    Math.abs(a[1][0] - b[1][0]) +
+    Math.abs(a[1][1] - b[1][1]);
+  return diff < 1e-8;
+}
+
+function vectorsEqual(a: Vec2, b: Vec2): boolean {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) < 1e-8;
+}
+
+function formatVec(value: Vec2): string {
+  return `(${formatNumber(value.x)}, ${formatNumber(value.y)})`;
+}
+
+function formatComplex(value: Vec2): string {
+  const real = formatNumber(value.x);
+  const imag = formatNumber(Math.abs(value.y));
+  const sign = value.y < 0 ? "-" : "+";
+  return `${real} ${sign} ${imag}i`;
+}
+
+function formatMatrix(matrix: Mat2): string {
+  return `[${formatNumber(matrix[0][0])}, ${formatNumber(matrix[0][1])}; ${formatNumber(
+    matrix[1][0],
+  )}, ${formatNumber(matrix[1][1])}]`;
+}
+
+function formatColumn(values: number[]): string {
+  return `[${values.map(formatNumber).join(", ")}]`;
+}
+
+function formatNumber(value: number): string {
+  if (Math.abs(value) < 1e-10) {
+    return "0";
+  }
+  return Number(value.toFixed(3)).toString();
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function mustGetElement<T extends HTMLElement>(id: string): T {
+  const element = document.getElementById(id);
+  if (!element) {
+    throw new Error(`Missing element #${id}`);
+  }
+  return element as T;
+}
+
+async function typesetMath(element: Element, attempts = 20): Promise<void> {
+  const typeset = window.MathJax?.typesetPromise;
+  if (!typeset) {
+    if (attempts > 0) {
+      window.setTimeout(() => {
+        void typesetMath(element, attempts - 1);
+      }, 120);
+    }
+    return;
+  }
+
+  await typeset([element]);
+}
+
+function isEditingTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLButtonElement
+  );
+}

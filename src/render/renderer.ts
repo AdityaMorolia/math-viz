@@ -21,22 +21,26 @@ export type Renderer = {
 
 export function createRenderer(
   canvas: HTMLCanvasElement,
-  blochRoot: HTMLElement,
+  blochRoot: HTMLElement | null,
   state: AppState,
 ): Renderer {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
+  const canvasContext = canvas.getContext("2d");
+  if (!canvasContext) {
     throw new Error("Could not create 2D canvas context.");
   }
-  const blochRenderer = createBlochRenderer(blochRoot, state);
+  const ctx: CanvasRenderingContext2D = canvasContext;
+  const blochRenderer = blochRoot ? createBlochRenderer(blochRoot, state) : null;
 
   function redraw(): void {
     const qubitMode = state.mode === "qubit";
-    canvas.classList.toggle("hidden", qubitMode);
-    blochRenderer.setVisible(qubitMode);
+    canvas.classList.toggle("hidden", qubitMode && !!blochRenderer);
+    blochRenderer?.setVisible(qubitMode);
     if (qubitMode) {
-      blochRenderer.render();
-      return;
+      if (blochRenderer) {
+        blochRenderer.render();
+        return;
+      }
+      state.mode = "algebra";
     }
 
     const { width, height } = resizeCanvas(canvas, ctx);

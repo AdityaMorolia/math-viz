@@ -19,7 +19,7 @@ import {
   rotateQubitAmplitudes,
 } from "../math/qubit";
 
-const VECTOR_COLORS = [
+export const VECTOR_COLORS = [
   "#d13f31",
   "#1f7a4d",
   "#1f6feb",
