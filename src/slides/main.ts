@@ -2,13 +2,7 @@ import "../style.css";
 import "./style.css";
 import {
   createInitialState,
-  getComplexAdditionNumbers,
-  getComplexMultiplicationNumbers,
-  getComplexUnaryNumber,
-  getPairVectors,
-  getScalarVector,
   getSelectedComplexNumber,
-  getSelectedVector,
   setComplexRotationTheta,
   setMode,
   setScalarMultiplier,
@@ -19,20 +13,10 @@ import {
   updateComplexValue,
   updateVectorValue,
 } from "../app/state";
-import type { AppState, Bounds, ComplexItem, Mat2, PairSelection, Vec2, VectorItem } from "../app/types";
+import type { ComplexItem, Mat2, PairSelection, Vec2, VectorItem } from "../app/types";
 import { bindPointerInteractions } from "../interaction/pointer";
-import {
-  addComplex,
-  argument,
-  conjugateComplex,
-  modulus,
-  multiplyComplex,
-  radiansToDegrees,
-  rotateByAngle,
-} from "../math/complex";
-import { applyMat2, det2, IDENTITY_2, lerpMat2, mat2FromColumns } from "../math/mat2";
-import { dot, norm, scale } from "../math/vec2";
-import { BASE_SCALE } from "../render/camera";
+import { argument, radiansToDegrees } from "../math/complex";
+import { scale } from "../math/vec2";
 import { createRenderer } from "../render/renderer";
 import { SLIDES } from "./deck";
 import type {
@@ -44,6 +28,8 @@ import type {
   SlideSpec,
   VisualSpec,
 } from "./deck";
+import { renderReadout } from "./readouts";
+import { fitCanvasToScene } from "./sceneFit";
 
 type SyncCallback = () => void;
 
@@ -70,7 +56,7 @@ vizHost.append(canvas);
 detachedViz.append(vizHost);
 
 const state = createInitialState();
-const renderer = createRenderer(canvas, null, state);
+const renderer = createRenderer(canvas, state);
 
 let activeIndex = indexFromHash();
 let activeReadoutKind: ReadoutKind | null = null;
@@ -168,9 +154,7 @@ function renderActiveSlide(): void {
   progress.append(createProgressBar());
 
   const article = document.createElement("article");
-  article.className = `slide slide-${slide.layout ?? "split"} ${
-    slide.visual ? "slide-has-visual" : "slide-no-visual"
-  }`;
+  article.className = `slide slide-${slide.layout ?? "split"} ${slide.visual ? "" : "slide-no-visual"}`;
 
   const text = document.createElement("section");
   text.className = "slide-text";
@@ -211,7 +195,7 @@ function createTitleBlock(slide: SlideSpec): HTMLElement {
   header.className = "slide-header";
 
   const title = document.createElement("h1");
-  title.innerHTML = slide.title;
+  title.textContent = slide.title;
   header.append(title);
 
   if (slide.subtitle) {
@@ -227,25 +211,6 @@ function createTitleBlock(slide: SlideSpec): HTMLElement {
 function createVisual(visual: VisualSpec): HTMLElement {
   const visualRoot = document.createElement("section");
   visualRoot.className = "slide-visual";
-
-  if (visual.kind === "image") {
-    const figure = document.createElement("figure");
-    figure.className = visual.compact ? "image-figure image-figure-compact" : "image-figure";
-
-    const image = document.createElement("img");
-    image.src = visual.src;
-    image.alt = visual.alt;
-    figure.append(image);
-
-    if (visual.credit) {
-      const credit = document.createElement("figcaption");
-      credit.textContent = visual.credit;
-      figure.append(credit);
-    }
-
-    visualRoot.append(figure);
-    return visualRoot;
-  }
 
   applyScenePreset(visual.scene);
   activeHasCanvas = true;
@@ -341,7 +306,7 @@ function createControl(control: ControlSpec): HTMLElement {
     return createComplexIPowersControl(control.multiplierId);
   }
 
-  return createComplexPowerControl(control);
+  return assertNever(control);
 }
 
 function createScalarControl(control: Extract<ControlSpec, { kind: "scalar" }>): HTMLElement {
@@ -537,37 +502,6 @@ function createComplexIPowersControl(multiplierId: string): HTMLElement {
   return section;
 }
 
-function createComplexPowerControl(
-  control: Extract<ControlSpec, { kind: "complex-power" }>,
-): HTMLElement {
-  const section = createControlSection("Power n");
-  const range = createLabeledRange("n", control.initialPower, 1, 8, 1);
-
-  const syncPower = (): void => {
-    const power = Math.round(Number(range.input.value));
-    const base = state.complexNumbers.find((number) => number.id === control.baseId);
-    const derived = state.complexNumbers.find((number) => number.id === control.derivedId);
-    if (!base || !derived) {
-      return;
-    }
-    derived.value = complexPower(base.value, power);
-    derived.label = `${base.label}^${power}`;
-    range.input.value = power.toString();
-    range.value.textContent = power.toString();
-  };
-
-  range.input.addEventListener("input", () => {
-    syncPower();
-    redrawAndSync({ fit: true });
-  });
-
-  section.append(range.row);
-  activeSyncCallbacks.push(syncPower);
-  syncPower();
-
-  return section;
-}
-
 function createControlSection(title: string): HTMLElement {
   const section = document.createElement("section");
   section.className = "control-section";
@@ -666,174 +600,7 @@ function fitCanvasToActiveScene(force = false): void {
     return;
   }
 
-  const rect = canvas.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return;
-  }
-
-  const spec = activeFitSpec ?? {};
-  const explicitBounds = resolveFitBounds(spec);
-  const bounds = expandBoundsToMinSpan(explicitBounds ?? computeSceneBounds(state), spec.minWorldSpan ?? 1.85);
-  const worldWidth = Math.max(0.01, bounds.maxX - bounds.minX);
-  const worldHeight = Math.max(0.01, bounds.maxY - bounds.minY);
-  const paddingFactor = spec.padding ?? 0.84;
-  const rawScale = Math.min(rect.width / worldWidth, rect.height / worldHeight) * paddingFactor;
-  const nextScale = clamp(rawScale, spec.minScale ?? 64, spec.maxScale ?? 260);
-
-  state.pan = {
-    x: (bounds.minX + bounds.maxX) / 2,
-    y: (bounds.minY + bounds.maxY) / 2,
-  };
-  setZoomOut(state, Math.log2(BASE_SCALE / nextScale));
-}
-
-function resolveFitBounds(spec: SceneFitSpec): Bounds | null {
-  if (!spec.bounds) {
-    return null;
-  }
-
-  return typeof spec.bounds === "function" ? spec.bounds() : spec.bounds;
-}
-
-function computeSceneBounds(appState: AppState): Bounds {
-  const builder = createBoundsBuilder();
-  includePoint(builder, { x: 0, y: 0 });
-
-  if (appState.mode === "complex") {
-    includeComplexBounds(builder, appState);
-  } else {
-    includeVectorBounds(builder, appState);
-  }
-
-  return builder.seen ? builder : { minX: -1, maxX: 1, minY: -1, maxY: 1 };
-}
-
-function includeVectorBounds(builder: BoundsBuilder, appState: AppState): void {
-  for (const vector of appState.vectors) {
-    includePoint(builder, vector.value);
-  }
-
-  const [first, second] = getPairVectors(appState);
-  if (first && second) {
-    includePoint(builder, addVec2(first.value, second.value));
-    includePoint(builder, { x: first.value.x - second.value.x, y: first.value.y - second.value.y });
-  }
-
-  const scalarVector = getScalarVector(appState);
-  if (scalarVector) {
-    includePoint(builder, scale(scalarVector.value, appState.scalarMultiplier));
-  }
-
-  if (appState.mode === "geometry" || appState.mode === "eigenvectors") {
-    const matrix =
-      appState.mode === "geometry"
-        ? lerpMat2(IDENTITY_2, appState.transformMatrix, appState.transformT)
-        : appState.transformMatrix;
-
-    for (const vector of appState.vectors) {
-      includePoint(builder, applyMat2(matrix, vector.value));
-    }
-
-    const focusPoints: Vec2[] = [
-      { x: -1, y: -1 },
-      { x: -1, y: 1 },
-      { x: 1, y: -1 },
-      { x: 1, y: 1 },
-      { x: 1.4, y: 0 },
-      { x: -1.4, y: 0 },
-      { x: 0, y: 1.4 },
-      { x: 0, y: -1.4 },
-    ];
-
-    for (const point of focusPoints) {
-      includePoint(builder, point);
-      includePoint(builder, applyMat2(matrix, point));
-    }
-  }
-}
-
-function includeComplexBounds(builder: BoundsBuilder, appState: AppState): void {
-  for (const number of appState.complexNumbers) {
-    includePoint(builder, number.value);
-  }
-
-  if (appState.complexConcepts.addition) {
-    const [first, second] = getComplexAdditionNumbers(appState);
-    if (first && second) {
-      includePoint(builder, addComplex(first.value, second.value));
-    }
-  }
-
-  if (appState.complexConcepts.multiplication) {
-    const [first, second] = getComplexMultiplicationNumbers(appState);
-    if (first && second) {
-      includePoint(builder, multiplyComplex(first.value, second.value));
-    }
-  }
-
-  const unary = getComplexUnaryNumber(appState);
-  if (!unary) {
-    return;
-  }
-
-  if (appState.complexConcepts.conjugate) {
-    includePoint(builder, conjugateComplex(unary.value));
-  }
-
-  if (appState.complexConcepts.rotation) {
-    includePoint(builder, rotateByAngle(unary.value, appState.complexRotationTheta));
-  }
-
-  if (appState.complexConcepts.polar) {
-    const radius = modulus(unary.value);
-    includePoint(builder, { x: radius, y: radius });
-    includePoint(builder, { x: -radius, y: -radius });
-  }
-}
-
-type BoundsBuilder = Bounds & {
-  seen: boolean;
-};
-
-function createBoundsBuilder(): BoundsBuilder {
-  return {
-    minX: Infinity,
-    maxX: -Infinity,
-    minY: Infinity,
-    maxY: -Infinity,
-    seen: false,
-  };
-}
-
-function includePoint(bounds: BoundsBuilder, point: Vec2): void {
-  bounds.minX = Math.min(bounds.minX, point.x);
-  bounds.maxX = Math.max(bounds.maxX, point.x);
-  bounds.minY = Math.min(bounds.minY, point.y);
-  bounds.maxY = Math.max(bounds.maxY, point.y);
-  bounds.seen = true;
-}
-
-function addVec2(first: Vec2, second: Vec2): Vec2 {
-  return {
-    x: first.x + second.x,
-    y: first.y + second.y,
-  };
-}
-
-function expandBoundsToMinSpan(bounds: Bounds, minSpan: number): Bounds {
-  const width = bounds.maxX - bounds.minX;
-  const height = bounds.maxY - bounds.minY;
-  const centerX = (bounds.minX + bounds.maxX) / 2;
-  const centerY = (bounds.minY + bounds.maxY) / 2;
-  const nextWidth = Math.max(width, minSpan);
-  const nextHeight = Math.max(height, minSpan);
-
-  return {
-    minX: centerX - nextWidth / 2,
-    maxX: centerX + nextWidth / 2,
-    minY: centerY - nextHeight / 2,
-    maxY: centerY + nextHeight / 2,
-  };
+  fitCanvasToScene(canvas, state, activeFitSpec ?? {});
 }
 
 function renderActiveReadout(): void {
@@ -841,147 +608,7 @@ function renderActiveReadout(): void {
     return;
   }
 
-  activeReadoutElement.innerHTML = renderReadout(activeReadoutKind);
-}
-
-function renderReadout(kind: ReadoutKind): string {
-  if (kind === "selected-vector") {
-    const vector = getSelectedVector(state);
-    if (!vector) {
-      return readoutRows([["vector", "n/a"]]);
-    }
-    return readoutRows([
-      [vector.label, formatVec(vector.value)],
-      ["length", formatNumber(norm(vector.value))],
-    ]);
-  }
-
-  if (kind === "pair" || kind === "linear-combo") {
-    const [first, second] = getPairVectors(state);
-    if (!first || !second) {
-      return readoutRows([["pair", "choose two vectors"]]);
-    }
-    const sum = { x: first.value.x + second.value.x, y: first.value.y + second.value.y };
-    return readoutRows([
-      [`${first.label}+${second.label}`, formatVec(sum)],
-      [`${first.label}-${second.label}`, formatVec({ x: first.value.x - second.value.x, y: first.value.y - second.value.y })],
-    ]);
-  }
-
-  if (kind === "scalar") {
-    const vector = getScalarVector(state);
-    if (!vector) {
-      return readoutRows([["scaled", "n/a"]]);
-    }
-    return readoutRows([
-      ["k", formatNumber(state.scalarMultiplier)],
-      [`k${vector.label}`, formatVec(scale(vector.value, state.scalarMultiplier))],
-    ]);
-  }
-
-  if (kind === "inner-product") {
-    const [first, second] = firstTwoVectors(state);
-    if (!first || !second) {
-      return readoutRows([["inner", "n/a"]]);
-    }
-    return readoutRows([
-      [`<${first.label}|${second.label}>`, formatNumber(dot(first.value, second.value))],
-      [`||${first.label}||`, formatNumber(norm(first.value))],
-      [`||${second.label}||`, formatNumber(norm(second.value))],
-    ]);
-  }
-
-  if (kind === "complex") {
-    return readoutRows(state.complexNumbers.map((number) => [number.label, formatComplex(number.value)]));
-  }
-
-  if (kind === "complex-arithmetic") {
-    const [first, second] = firstTwoComplex(state);
-    if (!first || !second) {
-      return readoutRows([["complex", "n/a"]]);
-    }
-    return readoutRows([
-      [`${first.label}+${second.label}`, formatComplex(addComplex(first.value, second.value))],
-      [`${first.label}${second.label}`, formatComplex(multiplyComplex(first.value, second.value))],
-    ]);
-  }
-
-  if (kind === "complex-polar") {
-    const number = getSelectedComplexNumber(state);
-    if (!number) {
-      return readoutRows([["polar", "n/a"]]);
-    }
-    return readoutRows([
-      [number.label, formatComplex(number.value)],
-      ["|z|", formatNumber(modulus(number.value))],
-      ["theta", `${formatNumber(radiansToDegrees(argument(number.value)))} deg`],
-    ]);
-  }
-
-  if (kind === "matrix") {
-    const vector = getSelectedVector(state);
-    const rows: Array<[string, string]> = [
-      ["M", formatMatrix(state.transformMatrix)],
-      ["det(M)", formatNumber(det2(state.transformMatrix))],
-    ];
-    if (vector) {
-      rows.push(["Mv", formatVec(applyMat2(state.transformMatrix, vector.value))]);
-    }
-    return readoutRows(rows);
-  }
-
-  if (kind === "determinant") {
-    const [first, second] = firstTwoVectors(state);
-    if (!first || !second) {
-      return readoutRows([["det", "n/a"]]);
-    }
-    const matrix = mat2FromColumns(first.value, second.value);
-    return readoutRows([
-      ["A", formatMatrix(matrix)],
-      ["det(A)", formatNumber(det2(matrix))],
-      ["area", formatNumber(Math.abs(det2(matrix)))],
-    ]);
-  }
-
-  if (kind === "matrix-product") {
-    return readoutRows([
-      ["current", formatMatrix(state.transformMatrix)],
-      ["det", formatNumber(det2(state.transformMatrix))],
-    ]);
-  }
-
-  const [first, second] = firstTwoVectors(state);
-  if (!first || !second) {
-    return readoutRows([["products", "n/a"]]);
-  }
-  return readoutRows([
-    [`<${first.label}|${second.label}>`, formatNumber(dot(first.value, second.value))],
-    [`${first.label} tensor ${second.label}`, formatColumn([
-      first.value.x * second.value.x,
-      first.value.x * second.value.y,
-      first.value.y * second.value.x,
-      first.value.y * second.value.y,
-    ])],
-    [`${first.label}${second.label}^T`, formatMatrix([
-      [first.value.x * second.value.x, first.value.x * second.value.y],
-      [first.value.y * second.value.x, first.value.y * second.value.y],
-    ])],
-  ]);
-}
-
-function readoutRows(rows: Array<[string, string]>): string {
-  return `<dl>${rows
-    .map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
-    .join("")}</dl>`;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+  activeReadoutElement.innerHTML = renderReadout(state, activeReadoutKind);
 }
 
 function goToSlide(index: number): void {
@@ -998,22 +625,6 @@ function indexFromHash(): number {
   const match = window.location.hash.match(/slide-(\d+)/);
   const parsed = match ? Number(match[1]) - 1 : 0;
   return clamp(Number.isFinite(parsed) ? parsed : 0, 0, SLIDES.length - 1);
-}
-
-function firstTwoVectors(appState: AppState): [VectorItem | null, VectorItem | null] {
-  return [appState.vectors[0] ?? null, appState.vectors[1] ?? null];
-}
-
-function firstTwoComplex(appState: AppState): [ComplexItem | null, ComplexItem | null] {
-  return [appState.complexNumbers[0] ?? null, appState.complexNumbers[1] ?? null];
-}
-
-function complexPower(value: Vec2, power: number): Vec2 {
-  let result = { x: 1, y: 0 };
-  for (let index = 0; index < power; index += 1) {
-    result = multiplyComplex(result, value);
-  }
-  return result;
 }
 
 function cloneVectors(vectors: VectorItem[]): VectorItem[] {
@@ -1054,27 +665,6 @@ function vectorsEqual(a: Vec2, b: Vec2): boolean {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) < 1e-8;
 }
 
-function formatVec(value: Vec2): string {
-  return `(${formatNumber(value.x)}, ${formatNumber(value.y)})`;
-}
-
-function formatComplex(value: Vec2): string {
-  const real = formatNumber(value.x);
-  const imag = formatNumber(Math.abs(value.y));
-  const sign = value.y < 0 ? "-" : "+";
-  return `${real} ${sign} ${imag}i`;
-}
-
-function formatMatrix(matrix: Mat2): string {
-  return `[${formatNumber(matrix[0][0])}, ${formatNumber(matrix[0][1])}; ${formatNumber(
-    matrix[1][0],
-  )}, ${formatNumber(matrix[1][1])}]`;
-}
-
-function formatColumn(values: number[]): string {
-  return `[${values.map(formatNumber).join(", ")}]`;
-}
-
 function formatNumber(value: number): string {
   if (Math.abs(value) < 1e-10) {
     return "0";
@@ -1098,9 +688,11 @@ async function typesetMath(element: Element, attempts = 20): Promise<void> {
   const typeset = window.MathJax?.typesetPromise;
   if (!typeset) {
     if (attempts > 0) {
-      window.setTimeout(() => {
-        void typesetMath(element, attempts - 1);
-      }, 120);
+      await new Promise<void>((resolve) => {
+        window.setTimeout(() => {
+          void typesetMath(element, attempts - 1).then(resolve);
+        }, 120);
+      });
     }
     return;
   }
@@ -1115,4 +707,8 @@ function isEditingTarget(target: EventTarget | null): boolean {
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLButtonElement
   );
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unexpected slide spec: ${JSON.stringify(value)}`);
 }

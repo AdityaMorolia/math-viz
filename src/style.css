@@ -324,61 +324,6 @@ input[type="range"] {
   min-height: 32px;
 }
 
-.qubit-amplitudes {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.qubit-amplitude-row {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-}
-
-.qubit-amplitude-name {
-  color: #28343b;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.probability-bars {
-  display: grid;
-  gap: 9px;
-}
-
-.probability-row {
-  display: grid;
-  grid-template-columns: 38px 1fr 48px;
-  align-items: center;
-  gap: 9px;
-  color: #4f5d65;
-  font-size: 13px;
-}
-
-.probability-track {
-  height: 12px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #e6edf0;
-}
-
-.probability-fill {
-  width: 0%;
-  height: 100%;
-  border-radius: inherit;
-  background: #008da6;
-  transition: width 120ms ease;
-}
-
-.probability-value {
-  color: #18252c;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  text-align: right;
-}
-
 .info-section dl {
   display: grid;
   gap: 7px;
@@ -419,29 +364,8 @@ input[type="range"] {
   cursor: grab;
 }
 
-#dojo-canvas.hidden {
-  display: none;
-}
-
 #dojo-canvas.dragging {
   cursor: grabbing;
-}
-
-.bloch-root {
-  position: absolute;
-  inset: 0;
-  display: none;
-  background: #f7f9fa;
-}
-
-.bloch-root.visible {
-  display: block;
-}
-
-.bloch-root canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
 }
 
 @media (max-width: 760px) {
@@ -457,10 +381,6 @@ input[type="range"] {
   }
 
   #dojo-canvas {
-    height: 52vh;
-  }
-
-  .bloch-root {
     height: 52vh;
   }
 

@@ -10,11 +10,8 @@ import type {
   VectorItem,
 } from "../app/types";
 
-const qubitImage = new URL("../../slides/images/qubit.png", import.meta.url).href;
-const blochImage = new URL("../../slides/images/blochsphere.png", import.meta.url).href;
-const toolBoxImage = new URL("../../slides/images/tool-box.png", import.meta.url).href;
-const qcampLogo = new URL("../../slides/images/QcampLogo.svg", import.meta.url).href;
-const cqtLogo = new URL("../../slides/images/CQT-logo-black-vertical.svg", import.meta.url).href;
+const qcampLogo = new URL("../../images/QcampLogo.svg", import.meta.url).href;
+const cqtLogo = new URL("../../images/CQT-logo-black-vertical.svg", import.meta.url).href;
 
 export type ScenePreset = {
   mode: DojoMode;
@@ -78,27 +75,18 @@ export type ControlSpec =
   | {
       kind: "complex-i-powers";
       multiplierId: string;
-    }
-  | {
-      kind: "complex-power";
-      baseId: string;
-      derivedId: string;
-      initialPower: number;
     };
 
 export type ReadoutKind =
-  | "selected-vector"
   | "pair"
   | "scalar"
   | "linear-combo"
-  | "inner-product"
   | "complex"
   | "complex-arithmetic"
   | "complex-polar"
   | "matrix"
   | "determinant"
-  | "matrix-product"
-  | "tensor-products";
+  | "matrix-product";
 
 export type SceneFitSpec = {
   bounds?: Bounds | (() => Bounds);
@@ -108,21 +96,13 @@ export type SceneFitSpec = {
   minWorldSpan?: number;
 };
 
-export type VisualSpec =
-  | {
-      kind: "image";
-      src: string;
-      alt: string;
-      credit?: string;
-      compact?: boolean;
-    }
-  | {
-      kind: "canvas";
-      scene: ScenePreset;
-      fit?: false | SceneFitSpec;
-      controls?: ControlSpec[];
-      readout?: ReadoutKind;
-    };
+export type VisualSpec = {
+  kind: "canvas";
+  scene: ScenePreset;
+  fit?: false | SceneFitSpec;
+  controls?: ControlSpec[];
+  readout?: ReadoutKind;
+};
 
 export type SlideSpec = {
   title: string;
@@ -278,50 +258,6 @@ export const SLIDES: SlideSpec[] = [
     `,
   },
   {
-    title: "Introduction: Qubits",
-    layout: "split",
-    body: `
-      <p>Computers use bits. Quantum computers use qubits</p>
-    `,
-    visual: {
-      kind: "image",
-      src: qubitImage,
-      alt: "A bit and a qubit illustration",
-      credit: "Credit: https://1qbit.com/blog/quantum-computing/a-bit-or-two-about-qubits/",
-    },
-  },
-  {
-    title: "Visualizing Qubits",
-    layout: "split",
-    body: `
-      <p>What are qubits? How can we understand them? Enter the Bloch Sphere!</p>
-      ${display(tex`\ket{\psi} = \cos(\theta/2)\ket{0} + e^{i\phi}\sin(\theta/2)\ket{1} \Rightarrow \text{What is that?!?}`)}
-    `,
-    visual: {
-      kind: "image",
-      src: blochImage,
-      alt: "Bloch sphere",
-      compact: true,
-    },
-  },
-  {
-    title: "Building Your Quantum Toolbox",
-    layout: "split",
-    body: `
-      ${display(tex`\ket{\psi} = \cos(\theta/2)\ket{0} + e^{i\phi}\sin(\theta/2)\ket{1}`)}
-      <ul>
-        <li>Complex Numbers:<br>${math(tex`e^{i\phi}`)}</li>
-        <li>Linear Algebra:<br>${math(tex`\ket{0}, \ket{1}`)}</li>
-      </ul>
-    `,
-    visual: {
-      kind: "image",
-      src: toolBoxImage,
-      alt: "Toolbox",
-      compact: true,
-    },
-  },
-  {
     title: "Linear Algebra",
     layout: "section",
     body: "<p>Vectors, addition, scaling, combinations.</p>",
@@ -349,7 +285,7 @@ export const SLIDES: SlideSpec[] = [
       <p>A thing with length and direction.</p>
       <p>Example: ${math(tex`\ket{v} = \begin{pmatrix}2\\1\end{pmatrix}`)}.</p>
       <p>Dimension: number of scalars.</p>
-      <p>In quantum mechanics: Qubits are vectors over <span class="defn">complex numbers</span>.</p>
+      <p>Vectors can also be built over <span class="defn">complex numbers</span>.</p>
     `,
     visual: {
       kind: "canvas",
@@ -856,46 +792,5 @@ export const SLIDES: SlideSpec[] = [
         <li>Outer product: 2 vectors ${math(tex`\Rightarrow`)} matrix</li>
       </ul>
     `,
-  },
-  {
-    title: "Return to the Bloch Sphere",
-    layout: "wide",
-    body: "<p>The Bloch sphere comes back once the toolbox is ready.</p>",
-    visual: {
-      kind: "image",
-      src: blochImage,
-      alt: "Bloch sphere",
-      compact: true,
-    },
-  },
-  {
-    title: "Bloch Sphere: Concept Check",
-    layout: "wide",
-    body: `
-      ${display(tex`\ket{\psi} = \cos(\theta/2)\ket{0} + e^{i\phi}\sin(\theta/2)\ket{1}`)}
-      <ul>
-        <li>How can we represent a qubit rotating in the Bloch sphere?</li>
-        <li>Where do you see Euler's formula used? What does the ${math(tex`\phi`)} do?</li>
-      </ul>
-    `,
-    visual: {
-      kind: "image",
-      src: blochImage,
-      alt: "Bloch sphere",
-      compact: true,
-    },
-  },
-  {
-    title: "Toolbox Complete!",
-    layout: "split",
-    body: `
-      <p class="big-statement">You're now ready to explore the weirdness of qubits!</p>
-    `,
-    visual: {
-      kind: "image",
-      src: toolBoxImage,
-      alt: "Toolbox",
-      compact: true,
-    },
   },
 ];

@@ -2,7 +2,6 @@ import type { AppState, Mat2 } from "../app/types";
 import { getPairVectors, getScalarVector, getSelectedVector } from "../app/state";
 import { realEigenpairs2 } from "../math/eigen";
 import { IDENTITY_2, isIdentityMat2, lerpMat2 } from "../math/mat2";
-import { createBlochRenderer } from "./blochSphere";
 import { getVisibleWorldBounds, makeCameraFromState } from "./camera";
 import { drawComplexConstructions, drawComplexItems } from "./drawComplex";
 import { drawAxes, drawAxisCoordinateLabels, drawTransformedGrid, drawWorldGrid } from "./drawGrid";
@@ -19,30 +18,14 @@ export type Renderer = {
   redraw: () => void;
 };
 
-export function createRenderer(
-  canvas: HTMLCanvasElement,
-  blochRoot: HTMLElement | null,
-  state: AppState,
-): Renderer {
+export function createRenderer(canvas: HTMLCanvasElement, state: AppState): Renderer {
   const canvasContext = canvas.getContext("2d");
   if (!canvasContext) {
     throw new Error("Could not create 2D canvas context.");
   }
   const ctx: CanvasRenderingContext2D = canvasContext;
-  const blochRenderer = blochRoot ? createBlochRenderer(blochRoot, state) : null;
 
   function redraw(): void {
-    const qubitMode = state.mode === "qubit";
-    canvas.classList.toggle("hidden", qubitMode && !!blochRenderer);
-    blochRenderer?.setVisible(qubitMode);
-    if (qubitMode) {
-      if (blochRenderer) {
-        blochRenderer.render();
-        return;
-      }
-      state.mode = "algebra";
-    }
-
     const { width, height } = resizeCanvas(canvas, ctx);
     const camera = makeCameraFromState(state, width, height);
     const bounds = getVisibleWorldBounds(camera);
