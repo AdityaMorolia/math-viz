@@ -2,7 +2,7 @@ import type { Camera, Mat2, Vec2, VectorItem } from "../app/types";
 import type { RealEigenResult } from "../math/eigen";
 import { applyMat2 } from "../math/mat2";
 import { parallelogramFromVectors } from "../math/parallelogram";
-import { add, scale, sub } from "../math/vec2";
+import { add, norm, scale, sub } from "../math/vec2";
 import { worldToScreen } from "./camera";
 import { drawHandle, drawVectorLabel } from "./drawLabels";
 
@@ -29,6 +29,15 @@ export function drawVectorItems(
     });
     drawHandle(ctx, camera, vector.value, selected ? "#172026" : vector.color);
     drawVectorLabel(ctx, camera, vector.value, vector.label, vector.color);
+    if (vector.showLength) {
+      drawVectorLabel(
+        ctx,
+        camera,
+        scale(vector.value, 0.5),
+        `length = ${formatMarkerNumber(norm(vector.value))}`,
+        "#172026",
+      );
+    }
   }
 }
 
@@ -70,6 +79,16 @@ export function drawComponentLegs(
     dashed: true,
     alpha: 0.72,
   });
+}
+
+function formatMarkerNumber(value: number): string {
+  if (Math.abs(value - Math.round(value)) < 1e-8) {
+    return Math.round(value).toString();
+  }
+
+  return value
+    .toFixed(2)
+    .replace(/\.?0+$/, "");
 }
 
 export function drawScalarPreview(

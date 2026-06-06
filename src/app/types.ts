@@ -26,6 +26,7 @@ export type VectorItem = {
   label: string;
   value: Vec2;
   color: string;
+  showLength?: boolean;
 };
 
 export type ComplexItem = {

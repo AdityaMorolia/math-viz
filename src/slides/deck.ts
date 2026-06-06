@@ -268,7 +268,7 @@ const SOURCE_SLIDES: SlideSpec[] = [
   },
   {
     title: "Vectors",
-    layout: "split",
+    layout: "wide",
     body: `
       <ul>
         <li>Linear algebra: study of <span class="defn">vector</span> spaces.</li>
@@ -278,12 +278,11 @@ const SOURCE_SLIDES: SlideSpec[] = [
         <li>Vectors: A collection of numbers.</li>
       </ul>
       ${display(tex`\vec{v} = \ket{v} = \begin{pmatrix}2\\5\\1.4\\\vdots\end{pmatrix}`)}
-      <p class="speaker-note">Adi: Lots of uses. You can add them. You can count them. They have geometric properties.</p>
     `,
-    visual: {
-      kind: "canvas",
-      scene: algebraScene([vectorItem("v1", "v", 1.2, 0.72, 0)]),
-    },
+    // visual: {
+    //   kind: "canvas",
+    //   scene: algebraScene([vectorItem("v1", "v", 1.2, 0.72, 0)]),
+    // },
   },
   {
     title: "Vectors",
@@ -291,9 +290,10 @@ const SOURCE_SLIDES: SlideSpec[] = [
     body: `
       <p>A thing with length and direction.</p>
       <p>Example: ${math(tex`\ket{v} = \begin{pmatrix}2\\1\end{pmatrix}`)}.</p>
+      ${pause}
       <p>Dimension: number of scalars.</p>
       ${pause}
-      <p>Vectors can also be built over <span class="defn">complex numbers</span>.</p>
+      <p>Where's the <span class="defn">algebra</span>?</p>
     `,
     visual: {
       kind: "canvas",
@@ -301,7 +301,8 @@ const SOURCE_SLIDES: SlideSpec[] = [
     },
   },
   {
-    title: "Why Linear Algebra?: Addition",
+    title: "Why Linear Algebra?",
+    subtitle: "Addition",
     layout: "split",
     body: `
       ${display(tex`\ket{v} = \begin{pmatrix}a\\b\\c\end{pmatrix} \qquad \ket{w} = \begin{pmatrix}d\\e\\f\end{pmatrix}`)}
@@ -322,16 +323,17 @@ const SOURCE_SLIDES: SlideSpec[] = [
     },
   },
   {
-    title: "Why Linear Algebra?: Scalar Multiplication",
+    title: "Why Linear Algebra?",
+    subtitle: "Scalar Multiplication",
     layout: "split",
     body: `
-      <p>${math(tex`k \in \R`)} is some scalar, ${math(tex`\ket{v} = \begin{pmatrix}a\\b\\c\end{pmatrix}`)}</p>
+      <p>${math(tex`k \in \R`)} is some scalar number, ${math(tex`\ket{v} = \begin{pmatrix}a\\b\\c\end{pmatrix}`)}</p>
+      ${pause}
       <div class="mybox">
         <strong>Scaling:</strong>
         ${display(tex`k\ket{v} = \begin{pmatrix}ka\\kb\\kc\end{pmatrix}`)}
       </div>
       ${pause}
-      <p>How can we multiply two vectors together? Stay tuned...</p>
     `,
     visual: {
       kind: "canvas",
@@ -355,6 +357,8 @@ const SOURCE_SLIDES: SlideSpec[] = [
       </div>
       ${pause}
       <p>We can define a vector as ${math(tex`\ket{\psi} = c_0\ket{v_0} + c_1\ket{v_1}`)}</p>
+      ${pause}
+      <p>For a mathematician, a <span class="defn">vector space</span> is a set where addition and scalar multiplication behaves nicely.</p>
     `,
     visual: {
       kind: "canvas",
@@ -574,20 +578,20 @@ const SOURCE_SLIDES: SlideSpec[] = [
     body: "<p>Inner products, matrices, and products of vectors.</p>",
   },
   {
-    title: "Vectors: Transpose",
+    title: "Transpose of a vector",
     layout: "wide",
     body: `
       <div class="mybox">
         If
         ${math(tex`\vec{v} = \ket{v} = \begin{pmatrix}a\\b\\c\end{pmatrix}`)}
         is a vector, then its <span class="defn">transpose</span> is
-        ${display(tex`(\vec{v})^T = \begin{pmatrix}a & b & c\end{pmatrix}.`)}
+        ${display(tex`\bra{v} = (\vec{v})^T = \begin{pmatrix}a & b & c\end{pmatrix}.`)}
       </div>
       ${pause}
     `,
   },
   {
-    title: "Vectors: Adjoint",
+    title: "Adjoint of a vector",
     layout: "wide",
     body: `
       <p>Vectors can also have complex entries.</p>
@@ -601,22 +605,46 @@ const SOURCE_SLIDES: SlideSpec[] = [
     `,
   },
   {
-    title: "Vector Multiplication? Inner Products",
+    title: "Length of a real vector?",
     layout: "wide",
     body: `
-      <ul>
-        <li>How do you multiply two vectors? What does it even mean to "multiply" two vectors?</li>
-      </ul>
+      <p>Suppose ${math(tex`\ket{v} = \begin{pmatrix}4 \\ 3\end{pmatrix}`)} </p>
+      ${pause}
+      <p>What is its length? ${pause}${math(tex`\lVert \vec v\rVert^2 = 4^2 + 3^2 = 5`)}.</p>
+      ${pause}
+      <p>${math(tex`\norm{\vec{v}}^2 = v_1^2 + v_2^2 + \ldots v_d^2`)}</p>
+      ${pause} 
+      <p>${math(tex`= (\vec{v}^\top)\cdot (\vec v) = 
+      \begin{pmatrix}v_1 & v_2 & \ldots v_d\end{pmatrix} \begin{pmatrix}v_1 \\ v_2 \\ \vdots \\ v_d\end{pmatrix}`)}.</p>
+    `,
+    // visual: {
+    //   kind: "canvas",
+    //   scene: algebraScene([{ ...vectorItem("v1", "v", 4, 3, 0), showLength: true }], {
+    //     selectedVectorId: "v1",
+    //     showComponentLegs: true,
+    //   }),
+    //   fit: {
+    //     bounds: { minX: -0.4, maxX: 4.6, minY: -0.35, maxY: 3.65 },
+    //     padding: 0.82,
+    //   },
+    // },
+  },
+  
+  {
+    title: "Inner Product",
+    subtitle: "... of two vectors",
+    layout: "wide",
+    body: `
       ${pause}
       <div class="mybox">
         The <span class="defn">inner product</span> between two vectors
         ${math(tex`\ket{v} = \begin{pmatrix}v_0\\v_1\end{pmatrix}, \ket{w} = \begin{pmatrix}w_0\\w_1\end{pmatrix}`)}
         is
+        ${pause}
         ${display(tex`\langle v|w\rangle = \begin{pmatrix}v_0^* & v_1^*\end{pmatrix}\begin{pmatrix}w_0\\w_1\end{pmatrix} = v_0^*w_0 + v_1^*w_1`)}
       </div>
-      <ul>
-        <li>Inner Product: 2 vectors ${math(tex`\Rightarrow`)} number</li>
-      </ul>
+      ${pause}
+      A quantity that measures how much the vectors point in the same direction.
     `,
   },
   {

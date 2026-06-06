@@ -1,3 +1,12 @@
+## Math Visualization
+
+This repository is a collection of interactive visualization tools and a slide deck for teaching complex numbers and linear algebra for quantum mechanics.
+This is tailored towards high school students. 
+This is a lightweight personal tool that does not contain any tests or build optimizations. 
+The tools are built with TypeScript and HTML canvas, and the slide deck is authored in TypeScript. 
+We use Vite as the build tool.
+At the beginning this was mostly vibe coded using ChatGPT.
+
 ## Slide deck
 
 The HTML slide deck is authored in `src/slides/deck.ts`. Think of each object in `SOURCE_SLIDES` as a Beamer `frame`.
