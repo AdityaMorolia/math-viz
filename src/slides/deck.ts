@@ -575,108 +575,37 @@ const SOURCE_SLIDES: SlideSpec[] = [
   {
     title: "Back to the space of vectors!",
     layout: "section",
-    body: "<p>Inner products, matrices, and products of vectors.</p>",
+    body: "<p>Matrices, Linear Transformation, and Products.</p>",
   },
   {
-    title: "Transpose of a vector",
+    title: "Matrix", 
     layout: "wide",
     body: `
-      <div class="mybox">
-        If
-        ${math(tex`\vec{v} = \ket{v} = \begin{pmatrix}a\\b\\c\end{pmatrix}`)}
-        is a vector, then its <span class="defn">transpose</span> is
-        ${display(tex`\bra{v} = (\vec{v})^T = \begin{pmatrix}a & b & c\end{pmatrix}.`)}
-      </div>
+      <p>${display(tex`M = \begin{pmatrix} 1 & -i & \ldots & 42 \\ 3i & -1 & \ldots & 142 \\ \vdots & \vdots & \vdots & \vdots \end{pmatrix}`)}</p>
       ${pause}
-    `,
+      <p>${display(tex`M = \begin{pmatrix}\vdots & \vdots & & \vdots \\ \vec v_1 & \vec v_2 & \ldots & \vec v_n \\ \vdots & \vdots & & \vdots\end{pmatrix}`)}</p>
+      ${pause}
+      <p>Linear Combination!${display(tex`\vec u = c_1 \vec v_1 + c_2 \vec v_2 + \ldots c_n \vec v_n.`)}</p>
+    `
   },
-  {
-    title: "Adjoint of a vector",
+    {
+    title: "Matrix as a Linear Function", 
+    subtitle: "Or, Linear Transformation",
     layout: "wide",
     body: `
-      <p>Vectors can also have complex entries.</p>
+      <p>${display(tex`M = \begin{pmatrix}\vdots & \vdots & & \vdots \\ \vec v_1 & \vec v_2 & \ldots & \vec v_n \\ \vdots & \vdots & & \vdots\end{pmatrix} \quad\quad \vec c = \begin{pmatrix}c_1 \\ c_2 \\ \vdots \\ c_n\end{pmatrix}`)}</p>
       ${pause}
-      <div class="mybox">
-        If
-        ${math(tex`\ket{v} = \begin{pmatrix}z_0\\z_1\\z_2\end{pmatrix}`)}
-        is a vector in ${math(tex`\C^3`)}, then its <span class="defn">adjoint</span> is
-        ${math(tex`(\ket{v})^{\dagger} = \bra{v} = \begin{pmatrix}z_0^* & z_1^* & z_2^*\end{pmatrix}`)}
-      </div>
-    `,
+      <p>${display(tex`M(\vec c) = \vec u = c_1 \vec v_1 + c_2 \vec v_2 + \ldots c_n \vec v_n`)}</p>
+    `
   },
-  {
-    title: "Length of a real vector?",
-    layout: "wide",
-    body: `
-      <p>Suppose ${math(tex`\ket{v} = \begin{pmatrix}4 \\ 3\end{pmatrix}`)} </p>
-      ${pause}
-      <p>What is its length? ${pause}${math(tex`\lVert \vec v\rVert^2 = 4^2 + 3^2 = 5`)}.</p>
-      ${pause}
-      <p>${math(tex`\norm{\vec{v}}^2 = v_1^2 + v_2^2 + \ldots v_d^2`)}</p>
-      ${pause} 
-      <p>${math(tex`= (\vec{v}^\top)\cdot (\vec v) = 
-      \begin{pmatrix}v_1 & v_2 & \ldots v_d\end{pmatrix} \begin{pmatrix}v_1 \\ v_2 \\ \vdots \\ v_d\end{pmatrix}`)}.</p>
-    `,
-    // visual: {
-    //   kind: "canvas",
-    //   scene: algebraScene([{ ...vectorItem("v1", "v", 4, 3, 0), showLength: true }], {
-    //     selectedVectorId: "v1",
-    //     showComponentLegs: true,
-    //   }),
-    //   fit: {
-    //     bounds: { minX: -0.4, maxX: 4.6, minY: -0.35, maxY: 3.65 },
-    //     padding: 0.82,
-    //   },
-    // },
-  },
-  
-  {
-    title: "Inner Product",
-    subtitle: "... of two vectors",
-    layout: "wide",
-    body: `
-      ${pause}
-      <div class="mybox">
-        The <span class="defn">inner product</span> between two vectors
-        ${math(tex`\ket{v} = \begin{pmatrix}v_0\\v_1\end{pmatrix}, \ket{w} = \begin{pmatrix}w_0\\w_1\end{pmatrix}`)}
-        is
-        ${pause}
-        ${display(tex`\langle v|w\rangle = \begin{pmatrix}v_0^* & v_1^*\end{pmatrix}\begin{pmatrix}w_0\\w_1\end{pmatrix} = v_0^*w_0 + v_1^*w_1`)}
-      </div>
-      ${pause}
-      A quantity that measures how much the vectors point in the same direction.
-    `,
-  },
-  {
-    title: "Properties of Inner Product",
-    layout: "wide",
-    body: `
-      <div class="mybox">
-        If ${math(tex`\langle v|w\rangle = 0`)} ${math(tex`\Rightarrow`)} ${math(tex`\ket{v}, \ket{w}`)} are <span class="defn">orthogonal</span>
-      </div>
-      ${pause}
-      <div class="mybox">
-        The <span class="defn">norm</span> of a vector ${math(tex`\ket{v}`)} is ${math(tex`\lVert v\rVert = \sqrt{\langle v|v\rangle}`)}
-      </div>
-      <ul>
-        <li>norm &approx; generalized length</li>
-        <li>If ${math(tex`\lVert v\rVert = 1`)}, ${math(tex`\ket{v}`)} is <span class="defn">normalized</span></li>
-      </ul>
-    `,
-  },
-  {
-    title: "Matrix as Linear Transforms",
+    {
+    title: "Linear Transforms",
     layout: "split",
     body: `
       <ul>
-        <li>How can we model how vectors change?</li>
-        <li>How can we represent the action of rotating a vector</li>
+        <li>Model how vectors change.</li>
+        <li>Rotation, Scaling, Shear, Anything <span class="defn">linear</span>.</li>
       </ul>
-      ${pause}
-      <div class="mybox">
-        A <span class="defn">matrix</span> is an object that linearly transforms vectors.
-        ${display(tex`M = \begin{bmatrix}a & b\\c & d\end{bmatrix} = \begin{bmatrix}\vec{v_0} & \vec{v_1}\end{bmatrix}`)}
-      </div>
     `,
     visual: {
       kind: "canvas",
@@ -686,24 +615,17 @@ const SOURCE_SLIDES: SlideSpec[] = [
     },
   },
   {
-    title: "Matrix Addition",
+    title: "Matrix Arithmetic",
     layout: "wide",
     body: `
       <p>${math(tex`A = \begin{bmatrix}a_{00} & a_{01}\\a_{10} & a_{11}\end{bmatrix}`)},
       ${math(tex`B = \begin{bmatrix}b_{00} & b_{01}\\b_{10} & b_{11}\end{bmatrix}`)}</p>
+      ${pause}
       <div class="mybox">
         <strong>Addition:</strong>
         ${display(tex`A + B = \begin{bmatrix}a_{00}+b_{00} & a_{01}+b_{01}\\a_{10}+b_{10} & a_{11}+b_{11}\end{bmatrix}`)}
       </div>
       ${pause}
-      <p>How is this similar to vector addition?</p>
-    `,
-  },
-  {
-    title: "Scalar Multiplication for Matrices",
-    layout: "wide",
-    body: `
-      <p>${math(tex`A = \begin{bmatrix}a_{00} & a_{01}\\a_{10} & a_{11}\end{bmatrix}`)}, scalar ${math(tex`c`)}</p>
       <div class="mybox">
         <strong>Scalar Multiplication:</strong>
         ${display(tex`cA = \begin{bmatrix}c a_{00} & c a_{01}\\c a_{10} & c a_{11}\end{bmatrix}`)}
@@ -751,6 +673,92 @@ const SOURCE_SLIDES: SlideSpec[] = [
       controls: [{ kind: "matrix-presets", presets: MATRIX_PRODUCT_PRESETS }],
       readout: "matrix-product",
     },
+  },
+  {
+    title: "Transpose of a vector",
+    layout: "wide",
+    body: `
+      <div class="mybox">
+        If
+        ${math(tex`\vec{v} = \ket{v} = \begin{pmatrix}a\\b\\c\end{pmatrix}`)}
+        is a vector, then its <span class="defn">transpose</span> is
+        ${display(tex`\bra{v} = (\vec{v})^T = \begin{pmatrix}a & b & c\end{pmatrix}.`)}
+      </div>
+      ${pause}
+    `,
+  },
+  {
+    title: "Adjoint of a vector",
+    layout: "wide",
+    body: `
+      <p>Vectors can also have complex entries.</p>
+      ${pause}
+      <div class="mybox">
+        If
+        ${math(tex`\ket{v} = \begin{pmatrix}z_0\\z_1\\z_2\end{pmatrix}`)}
+        is a vector in ${math(tex`\C^3`)}, then its <span class="defn">adjoint</span> is
+        ${math(tex`(\ket{v})^{\dagger} = \bra{v} = \begin{pmatrix}z_0^* & z_1^* & z_2^*\end{pmatrix}`)}
+      </div>
+    `,
+  },
+  // {
+  //   title: "Length of a real vector?",
+  //   layout: "wide",
+  //   body: `
+  //     <p>Suppose ${math(tex`\ket{v} = \begin{pmatrix}4 \\ 3\end{pmatrix}`)} </p>
+  //     ${pause}
+  //     <p>What is its length? ${pause}${math(tex`\lVert \vec v\rVert^2 = 4^2 + 3^2 = 5`)}.</p>
+  //     ${pause}
+  //     <p>${math(tex`\norm{\vec{v}}^2 = v_1^2 + v_2^2 + \ldots v_d^2`)}</p>
+  //     ${pause} 
+  //     <p>${math(tex`= (\vec{v}^\top)\cdot (\vec v) = 
+  //     \begin{pmatrix}v_1 & v_2 & \ldots v_d\end{pmatrix} \begin{pmatrix}v_1 \\ v_2 \\ \vdots \\ v_d\end{pmatrix}`)}.</p>
+  //   `,
+    // visual: {
+    //   kind: "canvas",
+    //   scene: algebraScene([{ ...vectorItem("v1", "v", 4, 3, 0), showLength: true }], {
+    //     selectedVectorId: "v1",
+    //     showComponentLegs: true,
+    //   }),
+    //   fit: {
+    //     bounds: { minX: -0.4, maxX: 4.6, minY: -0.35, maxY: 3.65 },
+    //     padding: 0.82,
+    //   },
+    // },
+  // },
+  {
+    title: "Inner Product",
+    subtitle: "... of two vectors",
+    layout: "wide",
+    body: `
+      ${pause}
+      <div class="mybox">
+        The <span class="defn">inner product</span> between two vectors
+        ${math(tex`\ket{v} = \begin{pmatrix}v_0\\v_1\end{pmatrix}, \ket{w} = \begin{pmatrix}w_0\\w_1\end{pmatrix}`)}
+        is
+        ${pause}
+        ${display(tex`\langle v|w\rangle = \begin{pmatrix}v_0^* & v_1^*\end{pmatrix}\begin{pmatrix}w_0\\w_1\end{pmatrix} = v_0^*w_0 + v_1^*w_1`)}
+      </div>
+      ${pause}
+      A quantity that measures how much the vectors point in the same direction.
+    `,
+  },
+  {
+    title: "Properties of Inner Product",
+    layout: "wide",
+    body: `
+      <div class="mybox">
+        If ${math(tex`\langle v|w\rangle = 0`)} ${math(tex`\Rightarrow`)} ${math(tex`\ket{v}, \ket{w}`)} are <span class="defn">orthogonal</span>
+      </div>
+      ${pause}
+      <div class="mybox">
+        The <span class="defn">norm</span> of a vector ${math(tex`\ket{v}`)} is ${math(tex`\lVert v\rVert = \sqrt{\langle v|v\rangle}`)}
+      </div>
+      <ul>
+        <li>norm &approx; generalized length</li>
+        <li>If ${math(tex`\lVert v\rVert = 1`)}, ${math(tex`\ket{v}`)} is <span class="defn">normalized</span></li>
+      </ul>
+    `,
   },
   {
     title: "Determinant",
