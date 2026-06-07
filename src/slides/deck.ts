@@ -323,6 +323,10 @@ const SOURCE_SLIDES: SlideSpec[] = [
         <li>Vectors: A collection of numbers.</li>
       </ul>
       ${display(tex`\vec{v} = \ket{v} = \begin{pmatrix}2\\5\\1.4\\\vdots\end{pmatrix}`)}
+      ${pause}
+      <ul>
+        <li>Language of the modern world. Physics, Computer Science, Engineering, Machine Learning, and much more.</li>
+      </ul>
     `,
     // visual: {
     //   kind: "canvas",
