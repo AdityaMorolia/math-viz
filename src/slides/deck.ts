@@ -129,6 +129,11 @@ const SCALE_REFLECT_Y: Mat2 = [
   [0, 2],
 ];
 
+const Z_MATRIX: Mat2 = [
+  [1, 0],
+  [0, -1],
+];
+
 const SHEAR: Mat2 = [
   [1, 0.85],
   [0, 1],
@@ -875,36 +880,102 @@ const SOURCE_SLIDES: SlideSpec[] = [
   //   },
   // },
   {
-    title: "Eigenvectors and Eigenvalues",
+    title: "Characterising Transformations",
     layout: "split",
     body: `
       <ul>
-        <li>${math(tex`M`)} is a matrix that scales all vectors by 2 and flips them over the ${math(tex`y`)} axis. What happens to the vector ${math(tex`\ket{v} = \begin{pmatrix}0\\1\end{pmatrix}`)}?</li>
+        <li>A matrix is a linear function over vectors.</li>
+        ${pause}
+        <li>It can change both length and direction.</li>
+        ${pause}
+        <li>Question: are there any directions that do not get turned?</li>
       </ul>
-      ${pause}
-      <ul>
-        <li>${math(tex`\ket{v}`)}'s direction doesn't change</li>
-      </ul>
-      ${pause}
-      <div class="mybox">
-        A vector ${math(tex`\ket{v}`)} is called an <span class="defn">eigenvector</span> of a matrix ${math(tex`M`)} if
-        ${display(tex`M\ket{v} = \lambda\ket{v}`)}
-        the scaling factor ${math(tex`\lambda`)} is the <span class="defn">eigenvalue</span>.
-      </div>
     `,
     visual: {
       kind: "canvas",
-      scene: {
-        ...geometryScene(SCALE_REFLECT_Y, {
-          mode: "eigenvectors",
-          vectors: [vectorItem("v1", "v", 0, 1, 0)],
-          selectedVectorId: "v1",
-        }),
-        mode: "eigenvectors",
-      },
-      controls: [{ kind: "matrix-presets", presets: MATRIX_PRESETS }],
+      scene: geometryScene(SHEAR, {
+        vectors: [vectorItem("v1", "v", 0.86, 1.1, 0)],
+        selectedVectorId: "v1",
+      }),
+      controls: [{ kind: "transform", label: "Transform amount" }],
       readout: "matrix",
     },
+  },
+  // {
+  //   title: "The Special Directions",
+  //   layout: "split",
+  //   body: `
+  //     <ul>
+  //       <li>Some vectors come out on the same line.</li>
+  //       ${pause}
+  //       <li>They can stretch, shrink, or flip, but they do not point somewhere new.</li>
+  //       ${pause}
+  //       <li>Those special vectors are called <span class="defn">eigenvectors</span>.</li>
+  //     </ul>
+  //   `,
+  //   visual: {
+  //     kind: "canvas",
+  //     scene: {
+  //       ...geometryScene(STRETCH, {
+  //         mode: "eigenvectors",
+  //         vectors: [vectorItem("v1", "v", 1.15, 0, 0)],
+  //         selectedVectorId: "v1",
+  //       }),
+  //       mode: "eigenvectors",
+  //     },
+  //     readout: "matrix",
+  //   },
+  // },
+  {
+    title: "Eigenvalues and Eigenvectors",
+    layout: "wide",
+    body: `
+      <div class="mybox">
+        A vector ${math(tex`\ket{v}`)} is called an <span class="defn">eigenvector</span> of a matrix ${math(tex`M`)} if
+        ${display(tex`M\ket{v} = \lambda\ket{v}.`)}
+        The scalar ${math(tex`\lambda`)} is the <span class="defn">eigenvalue</span>.
+      </div>
+    `,
+    // visual: {
+    //   kind: "canvas",
+    //   scene: {
+    //     ...geometryScene(SCALE_REFLECT_Y, {
+    //       mode: "eigenvectors",
+    //       vectors: [vectorItem("v1", "v", 1, 0, 0), vectorItem("v2", "w", 0, 1, 1)],
+    //       selectedVectorId: "v1",
+    //     }),
+    //     mode: "eigenvectors",
+    //   },
+    //   readout: "matrix",
+    // },
+  },
+  {
+    title: "Enter Quantum Mechanics",
+    layout: "wide",
+    body: `
+      <ul>
+        <li>In quantum mechanics, matrices are often <span class="defn">operators</span>.</li>
+        ${pause}
+        <li>Eigenvectors are <span class="defn">states</span> with definite answers.</li>
+        ${pause}
+        <li>Eigenvalues are the possible <span class="defn">measurement results</span>.</li>
+      </ul>
+      ${pause}
+      Example. Let ${math(tex`Z = \begin{pmatrix}1 & 0 \\ 0 & -1\end{pmatrix}`)}.
+        ${display(tex`Z\ket{0} = +1\ket{0}`)}
+        ${display(tex`Z\ket{1} = -1\ket{1}`)}
+    `,
+    // visual: {
+    //   kind: "canvas",
+    //   scene: {
+    //     ...geometryScene(Z_MATRIX, {
+    //       mode: "eigenvectors",
+    //       vectors: [vectorItem("v1", "|0>", 0.72, 0, 0), vectorItem("v2", "|1>", 0, 0.72, 1)],
+    //       selectedVectorId: "v1",
+    //     }),
+    //     mode: "eigenvectors",
+    //   },
+    // },
   },
     {
     title: "Toolbox Ready?",
