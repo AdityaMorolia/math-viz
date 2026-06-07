@@ -130,7 +130,7 @@ export function drawTransformedGrid(
 
   ctx.save();
   ctx.lineWidth = 1.1;
-  ctx.strokeStyle = "rgba(230, 126, 34, 0.25)";
+  ctx.strokeStyle = "rgba(12, 79, 155, 0.28)";
 
   for (let x = minX; x <= maxX; x += step) {
     drawTransformedLine(ctx, camera, matrix, { x, y: minY }, { x, y: maxY });

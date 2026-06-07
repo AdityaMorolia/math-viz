@@ -49,10 +49,10 @@ export function drawGlobalVectorGhosts(
 ): void {
   for (const vector of vectors) {
     drawArrow(ctx, camera, { x: 0, y: 0 }, applyMat2(matrix, vector.value), {
-      color: "#d79012",
-      width: 1.6,
+      color: "#0c4f9b",
+      width: 2,
       dashed: true,
-      alpha: 0.45,
+      alpha: 0.82,
     });
   }
 }
