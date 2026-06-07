@@ -12,6 +12,12 @@ import type {
 
 const qcampLogo = new URL("../../images/QcampLogo.svg", import.meta.url).href;
 const cqtLogo = new URL("../../images/CQT-logo-colour-vertical-blacktext.svg", import.meta.url).href;
+const titleQubit = new URL("../../images/qubit.png", import.meta.url).href
+const blochSph = new URL("../../images/blochsphere.png", import.meta.url).href
+const toolBox = new URL("../../images/tool-box.png", import.meta.url).href
+const tb1b = new URL("../../images/3b1bEssence.png", import.meta.url).href
+const mathviz = new URL("../../images/mathviz.png", import.meta.url).href
+
 
 export type ScenePreset = {
   mode: DojoMode;
@@ -260,6 +266,40 @@ const SOURCE_SLIDES: SlideSpec[] = [
         <img src="${cqtLogo}" alt="CQT logo" />
       </div>
     `,
+  },
+  {
+    title: "Qubits", 
+    layout: "wide",
+    body: `
+      <p>Computers use bits. Quantum computer use qubits.</p>
+      <img class="slide-image qubit-title-image" src="${titleQubit}" alt="Qubit illustration" />
+    `,
+  },
+  {
+    title: "Visualizing Qubits",
+    layout: "wide",
+    body: `
+      <p>What are qubits? How can we understand them? Enter the Bloch Sphere!</p>
+      <img class="slide-image bloch-sphere-image" src="${blochSph}" alt="Bloch sphere diagram" />
+      ${display(tex`\ket{\psi} = \cos\left(\frac{\theta}{2}\right)\ket{0} + e^{i\varphi}\sin\left(\frac{\theta}{2}\right)\ket{1}`)}
+      ${pause}
+      </br></br>
+      What is that?!?
+    `,
+  },
+  {
+    title: "Building Your Quantum Toolbox",
+    layout: "wide",
+    body: `
+      ${display(tex`\ket{\psi} = \cos\left(\frac{\theta}{2}\right)\ket{0} + e^{i\varphi}\sin\left(\frac{\theta}{2}\right)\ket{1}`)}
+      <div class="toolbox-split">
+        <img style="width: 60%" class="slide-image" src="${toolBox}" alt="Toolbox illustration" />
+        <ul>
+          <li>Complex Numbers: ${math(tex`e^{i\varphi}`)}</li>
+          <li>Linear Algebra: ${math(tex`\ket{0}, \ket{1}`)}</li>
+        </ul>
+      </div>
+    `
   },
   {
     title: "Linear Algebra",
@@ -766,7 +806,9 @@ const SOURCE_SLIDES: SlideSpec[] = [
       <div class="mybox">
         The <span class="defn">norm</span> of a vector ${math(tex`\ket{v}`)} is ${math(tex`\lVert v\rVert = \sqrt{\langle v|v\rangle}`)}
       </div>
+      ${pause}
       <p>If ${math(tex`\lVert v\rVert = 1`)}, then ${math(tex`\ket{v}`)} is <span class="defn">normalized</span></p>
+      ${pause}
       <p>If ${math(tex`\lVert v\rVert \neq 1`)}, then ${math(tex`\frac{1}{\norm{v}}\ket{v}`)} is <span class="defn">normalized</span></p>
     `,
   },
@@ -774,18 +816,12 @@ const SOURCE_SLIDES: SlideSpec[] = [
     title: "Kronecker Product",
     layout: "wide",
     body: `
-      <p>Two systems: Lab and an Environment</p>
-      <ul>
-        <li>How do you model the two systems together?</li>
-        <li>${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix} \in \text{Lab}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix} \in \text{Environment}`)}</li>
-      </ul>
+      ${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix}`)}
       ${pause}
       <div class="mybox">
         The <span class="defn">Kronecker product</span> between two vectors is
-        ${display(tex`\ket{v} \otimes \ket{w} = \begin{pmatrix}ac\\ad\\bc\\bd\end{pmatrix}`)}
+        ${display(tex`\ket{v} \otimes \ket{w} = \begin{pmatrix} a \begin{pmatrix}c\\d\end{pmatrix} \\ b \begin{pmatrix}c\\d\end{pmatrix} \end{pmatrix} = \begin{pmatrix}ac\\ad\\bc\\bd\end{pmatrix}`)}
       </div>
-      ${pause}
-      <p>${math(tex`\ket{v} \otimes \ket{w} \in \text{Lab and Environment}`)}</p>
     `,
   },
   {
@@ -798,45 +834,46 @@ const SOURCE_SLIDES: SlideSpec[] = [
       </div>
       ${pause}
       <p>What is the difference between an inner product ${math(tex`\langle v|w\rangle`)}, a Kronecker product ${math(tex`\ket{v} \otimes \ket{w}`)}, and an outer product ${math(tex`\ket{v}\bra{w}`)}?</p>
+      ${pause}
       <ul>
-        <li>Inner product: 2 vectors ${math(tex`\Rightarrow`)} number</li>
+        <li>${math(tex`\langle v|w\rangle`)}: Scalar number. Measures length, or how much are the vectors in the same direction.</li>
       </ul>
       ${pause}
       <ul>
-        <li>Kronecker product: 2 vectors ${math(tex`\Rightarrow`)} vector</li>
+        <li>${math(tex`\ket{v} \otimes \ket{w}`)}: vector in larger dimension.</li>
       </ul>
       ${pause}
       <ul>
-        <li>Outer product: 2 vectors ${math(tex`\Rightarrow`)} matrix</li>
+        <li>${math(tex`\ket{v}\bra{w}`)}: Matrix. Linear functions.</li>
       </ul>
     `,
   },
-  {
-    title: "Determinant",
-    layout: "split",
-    body: `
-      <ul>
-        <li>How much does a matrix transform the area of a region?</li>
-      </ul>
-      ${pause}
-      <div class="mybox">
-        The <span class="defn">determinant</span> of a matrix is
-        ${display(tex`\det(A) = \det\begin{bmatrix}a & b\\c & d\end{bmatrix} = \left|\begin{matrix}a & b\\c & d\end{matrix}\right| = ad - bc`)}
-      </div>
-    `,
-    visual: {
-      kind: "canvas",
-      scene: algebraScene(
-        [vectorItem("v1", "col1", 1.15, 0.35, 0), vectorItem("v2", "col2", 0.35, 1.1, 1)],
-        {
-          pairSelection: { firstId: "v1", secondId: "v2" },
-          selectedVectorId: "v1",
-          showComponentLegs: false,
-        },
-      ),
-      readout: "determinant",
-    },
-  },
+  // {
+  //   title: "Determinant",
+  //   layout: "split",
+  //   body: `
+  //     <ul>
+  //       <li>How much does a matrix transform the area of a region?</li>
+  //     </ul>
+  //     ${pause}
+  //     <div class="mybox">
+  //       The <span class="defn">determinant</span> of a matrix is
+  //       ${display(tex`\det(A) = \det\begin{bmatrix}a & b\\c & d\end{bmatrix} = \left|\begin{matrix}a & b\\c & d\end{matrix}\right| = ad - bc`)}
+  //     </div>
+  //   `,
+  //   visual: {
+  //     kind: "canvas",
+  //     scene: algebraScene(
+  //       [vectorItem("v1", "col1", 1.15, 0.35, 0), vectorItem("v2", "col2", 0.35, 1.1, 1)],
+  //       {
+  //         pairSelection: { firstId: "v1", secondId: "v2" },
+  //         selectedVectorId: "v1",
+  //         showComponentLegs: false,
+  //       },
+  //     ),
+  //     readout: "determinant",
+  //   },
+  // },
   {
     title: "Eigenvectors and Eigenvalues",
     layout: "split",
@@ -868,6 +905,36 @@ const SOURCE_SLIDES: SlideSpec[] = [
       controls: [{ kind: "matrix-presets", presets: MATRIX_PRESETS }],
       readout: "matrix",
     },
+  },
+    {
+    title: "Toolbox Ready?",
+    layout: "wide",
+    body: `
+      ${display(tex`\ket{\psi} = \cos\left(\frac{\theta}{2}\right)\ket{0} + e^{i\varphi}\sin\left(\frac{\theta}{2}\right)\ket{1}`)}
+      ${pause}
+        <ul>
+          <li>How do we model the qubit rotating on the bloch sphere?</li>
+          ${pause}
+          <li>Where do you see Euler's formula used? What is the ${math(tex`\varphi`)} doing?</li>
+        </ul>
+    `
+  },
+  {
+    title: "We're ready!",
+    subtitle: "...to explore the weirdness of the quantum world!",
+    layout: "wide",
+    body: `
+      <div class="final-image-pair">
+        <figure class="slide-figure">
+          <img class="slide-image" src="${tb1b}" alt="3Blue1Brown Essence illustration" />
+          <figcaption>3Blue1Brown: Essence of Linear Algebra</figcaption>
+        </figure>
+        <figure class="slide-figure">
+          <img class="slide-image" src="${mathviz}" alt="Math visualization illustration" />
+          <figcaption>Interactive math visualization</figcaption>
+        </figure>
+      </div>
+    `
   },
 ];
 
