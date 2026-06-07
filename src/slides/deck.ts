@@ -465,7 +465,7 @@ const SOURCE_SLIDES: SlideSpec[] = [
   },
   {
     title: "Complex Numbers",
-    layout: "split",
+    layout: "wide",
     body: `
       <div class="mybox">
         A <span class="defn">complex number</span> ${math(tex`z \in \C`)} has the form
@@ -475,13 +475,40 @@ const SOURCE_SLIDES: SlideSpec[] = [
       ${pause}
       <ul>
         <li>${math(tex`a`)} is the real part of ${math(tex`z`)}, ${math(tex`a = \operatorname{Re}(z)`)}</li>
+        ${pause}
         <li>${math(tex`b`)} is the imaginary part of ${math(tex`z`)}, ${math(tex`b = \operatorname{Im}(z)`)}</li>
+        ${pause}
         <li>Identify ${math(tex`z`)} with ${math(tex`\vec{z} = (a,b)`)}?</li>
       </ul>
     `,
+    // visual: {
+    //   kind: "canvas",
+    //   scene: complexScene([complexItem("c1", "z", 1.1, 0.85, 0)], {
+    //     complexConcepts: { polar: true },
+    //   }),
+    //   readout: "complex-polar",
+    // },
+  },
+  {
+    title: "Enter Geometry: Visualizing Numbers",
+    layout: "wide",
+    body: `
+      <p>How do we visualize the real numbers?</p>
+      ${pause}
+      <p>What about the complex numbers?</p>
+    `,
+  },
+  {
+    title: "The Complex Plane",
+    layout: "split",
+    body: `
+      <p>The real numbers ${math(tex`\rightarrow`)} 1D line ... the complex numbers ${math(tex`\rightarrow`)} a 2D plane!</p>
+      <p>We can also write ${math(tex`z`)} as</p>
+      ${display(tex`z = |z|(\cos\theta + i\sin\theta)`)}
+    `,
     visual: {
       kind: "canvas",
-      scene: complexScene([complexItem("c1", "z", 1.1, 0.85, 0)], {
+      scene: complexScene([complexItem("c1", "z", 1.18, 1.02, 0)], {
         complexConcepts: { polar: true },
       }),
       readout: "complex-polar",
@@ -535,31 +562,6 @@ const SOURCE_SLIDES: SlideSpec[] = [
       kind: "canvas",
       scene: complexScene([complexItem("c1", "z", 1.1, 0.9, 0)], {
         complexConcepts: { conjugate: true, polar: true },
-      }),
-      readout: "complex-polar",
-    },
-  },
-  {
-    title: "Enter Geometry: Visualizing Numbers",
-    layout: "wide",
-    body: `
-      <p>How do we visualize the real numbers?</p>
-      ${pause}
-      <p>What about the complex numbers?</p>
-    `,
-  },
-  {
-    title: "The Complex Plane",
-    layout: "split",
-    body: `
-      <p>The real numbers ${math(tex`\rightarrow`)} 1D line ... the complex numbers ${math(tex`\rightarrow`)} a 2D plane!</p>
-      <p>We can also write ${math(tex`z`)} as</p>
-      ${display(tex`z = |z|(\cos\theta + i\sin\theta)`)}
-    `,
-    visual: {
-      kind: "canvas",
-      scene: complexScene([complexItem("c1", "z", 1.18, 1.02, 0)], {
-        complexConcepts: { polar: true },
       }),
       readout: "complex-polar",
     },
@@ -680,7 +682,7 @@ const SOURCE_SLIDES: SlideSpec[] = [
     visual: {
       kind: "canvas",
       scene: geometryScene(SHEAR, {
-        vectors: [vectorItem("v1", "v", 0.86, 1.1, 0)],
+        vectors: [vectorItem("v1", "v", 0.86, 1.1, 0), vectorItem("v2", "u", 1.25, 0, 1)],
         selectedVectorId: "v1",
       }),
       controls: [{ kind: "matrix-presets", presets: MATRIX_PRESETS }, { kind: "transform", label: "Transform amount" }],
@@ -726,17 +728,16 @@ const SOURCE_SLIDES: SlideSpec[] = [
     // },
   },
   {
-    title: "(Vibe) Duality",
+    title: "Transpose and Adjoint",
     layout: "wide",
     body: `
+      ${pause}
       <div class="mybox">
         If
         ${math(tex`\vec{v} = \ket{v} = \begin{pmatrix}a\\b\\c\end{pmatrix}`)}
         is a vector, then its <span class="defn">transpose</span> is
         ${display(tex`\bra{v} = (\vec{v})^T = \begin{pmatrix}a & b & c\end{pmatrix}.`)}
       </div>
-      ${pause}
-      <p>Vectors can also have complex entries.</p>
       ${pause}
       <div class="mybox">
         If
@@ -898,7 +899,7 @@ const SOURCE_SLIDES: SlideSpec[] = [
     visual: {
       kind: "canvas",
       scene: geometryScene(SHEAR, {
-        vectors: [vectorItem("v1", "v", 0.86, 1.1, 0)],
+        vectors: [vectorItem("v1", "v", 0.86, 1.1, 0), vectorItem("v2", "u", 1.25, 0, 1)],
         selectedVectorId: "v1",
       }),
       controls: [{ kind: "transform", label: "Transform amount" }],
@@ -955,12 +956,15 @@ const SOURCE_SLIDES: SlideSpec[] = [
   },
   {
     title: "Enter Quantum Mechanics",
+    subtitle: "Or at least the vibes",
     layout: "wide",
     body: `
       <ul>
-        <li>In quantum mechanics, matrices are often <span class="defn">operators</span>.</li>
+        <li>In quantum mechanics, <span class="defn">states</span> are represented as unit vectors or specific matrices.</li>
         ${pause}
-        <li>Eigenvectors are <span class="defn">states</span> with definite answers.</li>
+        <li>In quantum mechanics, elementary <span class="defn">gates</span> are represented as matrices.</li>
+        ${pause}
+        <li>Eigenvectors of a gate represent states that don't change under that transformation.</li>
         ${pause}
         <li>Eigenvalues are the possible <span class="defn">measurement results</span>.</li>
       </ul>
@@ -980,6 +984,17 @@ const SOURCE_SLIDES: SlideSpec[] = [
     //     mode: "eigenvectors",
     //   },
     // },
+  },
+  {
+    title: "Spectral Decomposition",
+    subtitle: "Or, tell me what my matrix is made up of!",
+    body: `
+        ${math(tex`Z = \begin{pmatrix}1 & 0 \\ 0 & -1\end{pmatrix}`)}.
+        ${display(tex`Z\ket{0} = +1\ket{0}`)}
+        ${display(tex`Z\ket{1} = -1\ket{1}`)}
+        ${pause}
+        ${display(tex`Z = \ket{0}\bra{0} - \ket{1}\bra{1}.`)}
+    `
   },
     {
     title: "Toolbox Ready?",
