@@ -169,6 +169,45 @@ select {
   font-size: 13px;
 }
 
+.readout-math-array {
+  display: inline-grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.readout-math-bracket {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  color: currentColor;
+  font-family: ui-serif, Georgia, serif;
+  font-size: 1.75em;
+  line-height: 0.9;
+}
+
+.readout-math-grid {
+  display: grid;
+  column-gap: 10px;
+  row-gap: 2px;
+  align-items: center;
+  justify-items: end;
+}
+
+.readout-math-cols-1 {
+  grid-template-columns: max-content;
+}
+
+.readout-math-cols-2 {
+  grid-template-columns: repeat(2, max-content);
+}
+
+.readout-math-entry {
+  font-variant-numeric: tabular-nums;
+}
+
 input[type="number"]:focus,
 select:focus,
 button:focus-visible,
@@ -332,7 +371,7 @@ input[type="range"] {
 
 .info-section dl div {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }

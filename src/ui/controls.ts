@@ -53,6 +53,7 @@ import { realEigenpairs2 } from "../math/eigen";
 import { det2, mat2FromColumns } from "../math/mat2";
 import { add, norm, scale, sub } from "../math/vec2";
 import { formatNumber, mustGetElement, readNumberInput } from "./dom";
+import { vectorMarkup, type ReadoutMarkup } from "./mathMarkup";
 
 export type ControlBindings = {
   syncFromState: () => void;
@@ -1033,7 +1034,7 @@ function syncAlgebraReadouts(state: AppState): void {
   const selected = getSelectedVector(state);
   if (selected) {
     setTextIfPresent("readout-selected-name", selected.label);
-    setTextIfPresent("readout-selected-coords", formatVector(selected.value));
+    setMarkupIfPresent("readout-selected-coords", vectorMarkup(selected.value));
     setTextIfPresent("readout-selected-length", formatNumber(norm(selected.value)));
   } else {
     setTextIfPresent("readout-selected-name", "n/a");
@@ -1042,18 +1043,22 @@ function syncAlgebraReadouts(state: AppState): void {
   }
 
   const scalarVector = getScalarVector(state);
-  setTextIfPresent(
-    "readout-scalar-scaled",
-    scalarVector ? formatVector(scale(scalarVector.value, state.scalarMultiplier)) : "n/a",
-  );
+  if (scalarVector) {
+    setMarkupIfPresent(
+      "readout-scalar-scaled",
+      vectorMarkup(scale(scalarVector.value, state.scalarMultiplier)),
+    );
+  } else {
+    setTextIfPresent("readout-scalar-scaled", "n/a");
+  }
 
   const [first, second] = getPairVectors(state);
   if (first && second) {
     const sum = add(first.value, second.value);
     const difference = sub(first.value, second.value);
     const determinant = det2(mat2FromColumns(first.value, second.value));
-    setTextIfPresent("readout-pair-sum", formatVector(sum));
-    setTextIfPresent("readout-pair-difference", formatVector(difference));
+    setMarkupIfPresent("readout-pair-sum", vectorMarkup(sum));
+    setMarkupIfPresent("readout-pair-difference", vectorMarkup(difference));
     setTextIfPresent("readout-pair-det", formatNumber(determinant));
     setTextIfPresent("readout-pair-area", formatNumber(Math.abs(determinant)));
   } else {
@@ -1233,6 +1238,13 @@ function setTextIfPresent(id: string, text: string): void {
   const element = document.getElementById(id);
   if (element) {
     element.textContent = text;
+  }
+}
+
+function setMarkupIfPresent(id: string, markup: ReadoutMarkup): void {
+  const element = document.getElementById(id);
+  if (element) {
+    element.innerHTML = markup.html;
   }
 }
 

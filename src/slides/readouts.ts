@@ -4,11 +4,14 @@ import {
   getSelectedComplexNumber,
   getSelectedVector,
 } from "../app/state";
-import type { AppState, ComplexItem, Mat2, Vec2, VectorItem } from "../app/types";
+import type { AppState, ComplexItem, Vec2, VectorItem } from "../app/types";
 import { addComplex, argument, modulus, multiplyComplex, radiansToDegrees } from "../math/complex";
 import { applyMat2, det2, mat2FromColumns } from "../math/mat2";
 import { scale } from "../math/vec2";
+import { matrixMarkup, vectorMarkup, type ReadoutMarkup } from "../ui/mathMarkup";
 import type { ReadoutKind } from "./deck";
+
+type ReadoutValue = string | ReadoutMarkup;
 
 export function renderReadout(state: AppState, kind: ReadoutKind): string {
   if (kind === "pair" || kind === "linear-combo") {
@@ -18,10 +21,10 @@ export function renderReadout(state: AppState, kind: ReadoutKind): string {
     }
     const sum = { x: first.value.x + second.value.x, y: first.value.y + second.value.y };
     return readoutRows([
-      [`${first.label}+${second.label}`, formatVec(sum)],
+      [`${first.label}+${second.label}`, vectorMarkup(sum)],
       [
         `${first.label}-${second.label}`,
-        formatVec({ x: first.value.x - second.value.x, y: first.value.y - second.value.y }),
+        vectorMarkup({ x: first.value.x - second.value.x, y: first.value.y - second.value.y }),
       ],
     ]);
   }
@@ -33,7 +36,7 @@ export function renderReadout(state: AppState, kind: ReadoutKind): string {
     }
     return readoutRows([
       ["k", formatNumber(state.scalarMultiplier)],
-      [`k${vector.label}`, formatVec(scale(vector.value, state.scalarMultiplier))],
+      [`k${vector.label}`, vectorMarkup(scale(vector.value, state.scalarMultiplier))],
     ]);
   }
 
@@ -66,12 +69,12 @@ export function renderReadout(state: AppState, kind: ReadoutKind): string {
 
   if (kind === "matrix") {
     const vector = getSelectedVector(state);
-    const rows: Array<[string, string]> = [
-      ["M", formatMatrix(state.transformMatrix)],
+    const rows: Array<[string, ReadoutValue]> = [
+      ["M", matrixMarkup(state.transformMatrix)],
       ["det(M)", formatNumber(det2(state.transformMatrix))],
     ];
     if (vector) {
-      rows.push(["Mv", formatVec(applyMat2(state.transformMatrix, vector.value))]);
+      rows.push(["Mv", vectorMarkup(applyMat2(state.transformMatrix, vector.value))]);
     }
     return readoutRows(rows);
   }
@@ -83,7 +86,7 @@ export function renderReadout(state: AppState, kind: ReadoutKind): string {
     }
     const matrix = mat2FromColumns(first.value, second.value);
     return readoutRows([
-      ["A", formatMatrix(matrix)],
+      ["A", matrixMarkup(matrix)],
       ["det(A)", formatNumber(det2(matrix))],
       ["area", formatNumber(Math.abs(det2(matrix)))],
     ]);
@@ -91,7 +94,7 @@ export function renderReadout(state: AppState, kind: ReadoutKind): string {
 
   if (kind === "matrix-product") {
     return readoutRows([
-      ["current", formatMatrix(state.transformMatrix)],
+      ["current", matrixMarkup(state.transformMatrix)],
       ["det", formatNumber(det2(state.transformMatrix))],
     ]);
   }
@@ -99,10 +102,14 @@ export function renderReadout(state: AppState, kind: ReadoutKind): string {
   return readoutRows([["readout", "n/a"]]);
 }
 
-function readoutRows(rows: Array<[string, string]>): string {
+function readoutRows(rows: Array<[string, ReadoutValue]>): string {
   return `<dl>${rows
-    .map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
+    .map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${renderReadoutValue(value)}</dd></div>`)
     .join("")}</dl>`;
+}
+
+function renderReadoutValue(value: ReadoutValue): string {
+  return typeof value === "string" ? escapeHtml(value) : value.html;
 }
 
 function escapeHtml(value: string): string {
@@ -122,21 +129,11 @@ function firstTwoComplex(appState: AppState): [ComplexItem | null, ComplexItem |
   return [appState.complexNumbers[0] ?? null, appState.complexNumbers[1] ?? null];
 }
 
-function formatVec(value: Vec2): string {
-  return `(${formatNumber(value.x)}, ${formatNumber(value.y)})`;
-}
-
 function formatComplex(value: Vec2): string {
   const real = formatNumber(value.x);
   const imag = formatNumber(Math.abs(value.y));
   const sign = value.y < 0 ? "-" : "+";
   return `${real} ${sign} ${imag}i`;
-}
-
-function formatMatrix(matrix: Mat2): string {
-  return `[${formatNumber(matrix[0][0])}, ${formatNumber(matrix[0][1])}; ${formatNumber(
-    matrix[1][0],
-  )}, ${formatNumber(matrix[1][1])}]`;
 }
 
 function formatNumber(value: number): string {

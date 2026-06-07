@@ -358,7 +358,9 @@ const SOURCE_SLIDES: SlideSpec[] = [
       ${pause}
       <p>We can define a vector as ${math(tex`\ket{\psi} = c_0\ket{v_0} + c_1\ket{v_1}`)}</p>
       ${pause}
-      <p>For a mathematician, a <span class="defn">vector space</span> is a set where addition and scalar multiplication behaves nicely.</p>
+      <p>For a mathematician, a <span class="defn">vector space</span> is a set (of vectors) where addition and scalar multiplication behaves nicely.</p>
+      ${pause}
+      <p>A <span class="defn">basis</span> is a special set of vectors that can represent any vector in your space.</p>
     `,
     visual: {
       kind: "canvas",
@@ -615,6 +617,28 @@ const SOURCE_SLIDES: SlideSpec[] = [
     },
   },
   {
+    title: "Matrix-Vector Multiplication",
+    layout: "split",
+    body: `
+      <p>Matrices linearly transform vectors.</p>
+      <p>${math(tex`M = \begin{bmatrix}a_{00} & a_{01}\\a_{10} & a_{11}\end{bmatrix}`)},
+      ${math(tex`\ket{v} = \begin{pmatrix}v_0\\v_1\end{pmatrix}`)}</p>
+      <div class="mybox">
+        <strong>Matrix-Vector Transform:</strong>
+        ${display(tex`M\ket{v} = v_0 \vec m_0 + v_1 \vec m_1 = \begin{pmatrix}a_{00}v_0 + a_{01}v_1\\a_{10}v_0 + a_{11}v_1\end{pmatrix}`)}
+      </div>
+    `,
+    visual: {
+      kind: "canvas",
+      scene: geometryScene(SHEAR, {
+        vectors: [vectorItem("v1", "v", 0.86, 1.1, 0)],
+        selectedVectorId: "v1",
+      }),
+      controls: [{ kind: "matrix-presets", presets: MATRIX_PRESETS }, { kind: "transform", label: "Transform amount" }],
+      readout: "matrix",
+    },
+  },
+  {
     title: "Matrix Arithmetic",
     layout: "wide",
     body: `
@@ -633,28 +657,6 @@ const SOURCE_SLIDES: SlideSpec[] = [
     `,
   },
   {
-    title: "Matrix-Vector Multiplication",
-    layout: "split",
-    body: `
-      <p>Matrices linearly transform vectors.</p>
-      <p>${math(tex`M = \begin{bmatrix}a_{00} & a_{01}\\a_{10} & a_{11}\end{bmatrix}`)},
-      ${math(tex`\ket{v} = \begin{pmatrix}v_0\\v_1\end{pmatrix}`)}</p>
-      <div class="mybox">
-        <strong>Matrix-Vector Transform:</strong>
-        ${display(tex`M\ket{v} = \begin{pmatrix}a_{00}v_0 + a_{01}v_1\\a_{10}v_0 + a_{11}v_1\end{pmatrix}`)}
-      </div>
-    `,
-    visual: {
-      kind: "canvas",
-      scene: geometryScene(SHEAR, {
-        vectors: [vectorItem("v1", "v", 0.86, 1.1, 0)],
-        selectedVectorId: "v1",
-      }),
-      controls: [{ kind: "matrix-presets", presets: MATRIX_PRESETS }, { kind: "transform", label: "Transform amount" }],
-      readout: "matrix",
-    },
-  },
-  {
     title: "Matrix Multiplication",
     layout: "split",
     body: `
@@ -662,20 +664,20 @@ const SOURCE_SLIDES: SlideSpec[] = [
       ${math(tex`B = \begin{bmatrix}b_{00} & b_{01}\\b_{10} & b_{11}\end{bmatrix}`)}</p>
       <div class="mybox">
         <strong>Matrix Multiplication:</strong>
-        ${display(tex`AB = \begin{bmatrix}a_{00}b_{00} + a_{01}b_{10} & a_{00}b_{01} + a_{01}b_{11}\\a_{10}b_{00} + a_{11}b_{10} & a_{10}b_{01} + a_{11}b_{11}\end{bmatrix}`)}
+        ${display(tex`AB = A\begin{bmatrix}\vec b_1 & \vec b_2\end{bmatrix} = \begin{bmatrix}A\vec b_1 & A\vec b_2\end{bmatrix}`)}
       </div>
       ${pause}
       <p>What is ${math(tex`BA`)}?</p>
     `,
-    visual: {
-      kind: "canvas",
-      scene: geometryScene(MATRIX_PRODUCT_PRESETS[2].matrix),
-      controls: [{ kind: "matrix-presets", presets: MATRIX_PRODUCT_PRESETS }],
-      readout: "matrix-product",
-    },
+    // visual: {
+    //   kind: "canvas",
+    //   scene: geometryScene(MATRIX_PRODUCT_PRESETS[2].matrix),
+    //   controls: [{ kind: "matrix-presets", presets: MATRIX_PRODUCT_PRESETS }],
+    //   readout: "matrix-product",
+    // },
   },
   {
-    title: "Transpose of a vector",
+    title: "(Vibe) Duality",
     layout: "wide",
     body: `
       <div class="mybox">
@@ -685,12 +687,6 @@ const SOURCE_SLIDES: SlideSpec[] = [
         ${display(tex`\bra{v} = (\vec{v})^T = \begin{pmatrix}a & b & c\end{pmatrix}.`)}
       </div>
       ${pause}
-    `,
-  },
-  {
-    title: "Adjoint of a vector",
-    layout: "wide",
-    body: `
       <p>Vectors can also have complex entries.</p>
       ${pause}
       <div class="mybox">
@@ -699,6 +695,22 @@ const SOURCE_SLIDES: SlideSpec[] = [
         is a vector in ${math(tex`\C^3`)}, then its <span class="defn">adjoint</span> is
         ${math(tex`(\ket{v})^{\dagger} = \bra{v} = \begin{pmatrix}z_0^* & z_1^* & z_2^*\end{pmatrix}`)}
       </div>
+    `,
+  },
+  {
+    title: "What about Matrices?",
+    layout: "wide",
+    body: `
+      <p>${math(tex`M = \begin{bmatrix}z_{00} & z_{01}\\z_{10} & z_{11}\end{bmatrix}`)}</p>
+      <div class="mybox">
+        The <span class="defn">Hermitian conjugate</span> of a matrix is
+        ${display(tex`M^\dagger = \begin{bmatrix}z_{00}^* & z_{10}^*\\z_{01}^* & z_{11}^*\end{bmatrix}`)}
+      </div>
+      ${pause}
+      <ul>
+        <li>If ${math(tex`M = M^\dagger`)} ${math(tex`\Rightarrow`)} ${math(tex`M`)} is <span class="defn">Hermitian</span>.</li>
+        <li>If ${math(tex`MM^\dagger = M^\dagger M = I`)} ${math(tex`\Rightarrow`)} ${math(tex`M`)} is <span class="defn">unitary</span>.</li>
+      </ul>
     `,
   },
   // {
@@ -754,9 +766,48 @@ const SOURCE_SLIDES: SlideSpec[] = [
       <div class="mybox">
         The <span class="defn">norm</span> of a vector ${math(tex`\ket{v}`)} is ${math(tex`\lVert v\rVert = \sqrt{\langle v|v\rangle}`)}
       </div>
+      <p>If ${math(tex`\lVert v\rVert = 1`)}, then ${math(tex`\ket{v}`)} is <span class="defn">normalized</span></p>
+      <p>If ${math(tex`\lVert v\rVert \neq 1`)}, then ${math(tex`\frac{1}{\norm{v}}\ket{v}`)} is <span class="defn">normalized</span></p>
+    `,
+  },
+  {
+    title: "Kronecker Product",
+    layout: "wide",
+    body: `
+      <p>Two systems: Lab and an Environment</p>
       <ul>
-        <li>norm &approx; generalized length</li>
-        <li>If ${math(tex`\lVert v\rVert = 1`)}, ${math(tex`\ket{v}`)} is <span class="defn">normalized</span></li>
+        <li>How do you model the two systems together?</li>
+        <li>${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix} \in \text{Lab}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix} \in \text{Environment}`)}</li>
+      </ul>
+      ${pause}
+      <div class="mybox">
+        The <span class="defn">Kronecker product</span> between two vectors is
+        ${display(tex`\ket{v} \otimes \ket{w} = \begin{pmatrix}ac\\ad\\bc\\bd\end{pmatrix}`)}
+      </div>
+      ${pause}
+      <p>${math(tex`\ket{v} \otimes \ket{w} \in \text{Lab and Environment}`)}</p>
+    `,
+  },
+  {
+    title: "Outer Product",
+    layout: "wide",
+    body: `
+      <div class="mybox">
+        The <span class="defn">outer product</span> of two vectors ${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix}`)} is
+        ${display(tex`\ket{v}\bra{w} = \begin{pmatrix}a\\b\end{pmatrix}\begin{pmatrix}c^* & d^*\end{pmatrix} = \begin{bmatrix}ac^* & ad^*\\bc^* & bd^*\end{bmatrix}`)}
+      </div>
+      ${pause}
+      <p>What is the difference between an inner product ${math(tex`\langle v|w\rangle`)}, a Kronecker product ${math(tex`\ket{v} \otimes \ket{w}`)}, and an outer product ${math(tex`\ket{v}\bra{w}`)}?</p>
+      <ul>
+        <li>Inner product: 2 vectors ${math(tex`\Rightarrow`)} number</li>
+      </ul>
+      ${pause}
+      <ul>
+        <li>Kronecker product: 2 vectors ${math(tex`\Rightarrow`)} vector</li>
+      </ul>
+      ${pause}
+      <ul>
+        <li>Outer product: 2 vectors ${math(tex`\Rightarrow`)} matrix</li>
       </ul>
     `,
   },
@@ -817,63 +868,6 @@ const SOURCE_SLIDES: SlideSpec[] = [
       controls: [{ kind: "matrix-presets", presets: MATRIX_PRESETS }],
       readout: "matrix",
     },
-  },
-  {
-    title: "Kronecker Product",
-    layout: "wide",
-    body: `
-      <p>Two systems: Lab and an Environment</p>
-      <ul>
-        <li>How do you model the two systems together?</li>
-        <li>${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix} \in \text{Lab}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix} \in \text{Environment}`)}</li>
-      </ul>
-      ${pause}
-      <div class="mybox">
-        The <span class="defn">Kronecker product</span> between two vectors is
-        ${display(tex`\ket{v} \otimes \ket{w} = \begin{pmatrix}ac\\ad\\bc\\bd\end{pmatrix}`)}
-      </div>
-      ${pause}
-      <p>${math(tex`\ket{v} \otimes \ket{w} \in \text{Lab and Environment}`)}</p>
-    `,
-  },
-  {
-    title: "Complex Matrices",
-    layout: "wide",
-    body: `
-      <p>Matrices can have complex entries. ${math(tex`M = \begin{bmatrix}z_{00} & z_{01}\\z_{10} & z_{11}\end{bmatrix}`)}</p>
-      <div class="mybox">
-        The <span class="defn">Hermitian conjugate</span> of a matrix is
-        ${display(tex`M^\dagger = \begin{bmatrix}z_{00}^* & z_{10}^*\\z_{01}^* & z_{11}^*\end{bmatrix}`)}
-      </div>
-      ${pause}
-      <ul>
-        <li>If ${math(tex`M = M^\dagger`)} ${math(tex`\Rightarrow`)} ${math(tex`M`)} is <span class="defn">Hermitian</span>.</li>
-        <li>If ${math(tex`MM^\dagger = I`)} ${math(tex`\Rightarrow`)} ${math(tex`M`)} is <span class="defn">unitary</span>.</li>
-      </ul>
-    `,
-  },
-  {
-    title: "Turning Vectors into Matrices",
-    layout: "wide",
-    body: `
-      <div class="mybox">
-        The <span class="defn">outer product</span> of two vectors ${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix}`)} is
-        ${display(tex`\ket{v}\bra{w} = \begin{pmatrix}a\\b\end{pmatrix}\begin{pmatrix}c^* & d^*\end{pmatrix} = \begin{bmatrix}ac^* & ad^*\\bc^* & bd^*\end{bmatrix}`)}
-      </div>
-      ${pause}
-      <p>What is the difference between an inner product ${math(tex`\langle v|w\rangle`)}, a Kronecker product ${math(tex`\ket{v} \otimes \ket{w}`)}, and an outer product ${math(tex`\ket{v}\bra{w}`)}?</p>
-      <ul>
-        <li>Inner product: 2 vectors ${math(tex`\Rightarrow`)} number</li>
-      </ul>
-      ${pause}
-      <ul>
-        <li>Kronecker product: 2 vectors ${math(tex`\Rightarrow`)} vector</li>
-      </ul>
-      ${pause}
-      <ul>
-        <li>Outer product: 2 vectors ${math(tex`\Rightarrow`)} matrix</li>
-      </ul>
-    `,
   },
 ];
 

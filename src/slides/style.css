@@ -363,7 +363,7 @@ body {
   display: grid;
   grid-template-columns: minmax(70px, auto) minmax(0, 1fr);
   gap: 12px;
-  align-items: baseline;
+  align-items: center;
 }
 
 .readout-card dt {
