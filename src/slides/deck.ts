@@ -281,7 +281,7 @@ const SOURCE_SLIDES: SlideSpec[] = [
     `,
   },
   {
-    title: "Visualizing Qubits",
+    title: "Representing Qubits",
     layout: "wide",
     body: `
       <p>What are qubits? How can we understand them? Enter the Bloch Sphere!</p>
