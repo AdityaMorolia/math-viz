@@ -728,6 +728,15 @@ const SOURCE_SLIDES: SlideSpec[] = [
     // },
   },
   {
+    title: "More Matrix Multiplication",
+    layout: "wide",
+    body: `
+      ${display(tex`\begin{pmatrix}v_0^* & v_1^*\end{pmatrix}\begin{pmatrix}w_0\\w_1\end{pmatrix} = v_0^*w_0 + v_1^*w_1`)}
+      ${pause}
+      ${display(tex`A \in \mathbb{C}^{m \times n} \quad B \in \mathbb{C}^{n \times m}`)}
+    `
+  },
+  {
     title: "Transpose and Adjoint",
     layout: "wide",
     body: `
@@ -817,9 +826,21 @@ const SOURCE_SLIDES: SlideSpec[] = [
         The <span class="defn">norm</span> of a vector ${math(tex`\ket{v}`)} is ${math(tex`\lVert v\rVert = \sqrt{\langle v|v\rangle}`)}
       </div>
       ${pause}
-      <p>If ${math(tex`\lVert v\rVert = 1`)}, then ${math(tex`\ket{v}`)} is <span class="defn">normalized</span></p>
+      <p>${math(tex`\lVert v\rVert^2 = \langle v|v\rangle = v_1^2 + v_2^2 + \ldots v_n^2`)}.</p>
       ${pause}
-      <p>If ${math(tex`\lVert v\rVert \neq 1`)}, then ${math(tex`\frac{1}{\norm{v}}\ket{v}`)} is <span class="defn">normalized</span></p>
+      <p>If ${math(tex`\lVert v\rVert = 1`)}, then ${math(tex`\ket{v}`)} is <span class="defn">normalized</span> or unit.</p>
+      ${pause}
+      <p>If ${math(tex`\lVert v\rVert \neq 1`)}, then ${math(tex`\frac{1}{\norm{v}}\ket{v}`)} is <span class="defn">normalized</span>.</p>
+    `,
+  },
+  {
+    title: "Outer Product",
+    layout: "wide",
+    body: `
+      <div class="mybox">
+        The <span class="defn">outer product</span> of two vectors ${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix}`)} is
+        ${display(tex`\ket{v}\bra{w} = \begin{pmatrix}a\\b\end{pmatrix}\begin{pmatrix}c^* & d^*\end{pmatrix} = \begin{bmatrix}ac^* & ad^*\\bc^* & bd^*\end{bmatrix}`)}
+      </div>
     `,
   },
   {
@@ -831,16 +852,6 @@ const SOURCE_SLIDES: SlideSpec[] = [
       <div class="mybox">
         The <span class="defn">Kronecker product</span> between two vectors is
         ${display(tex`\ket{v} \otimes \ket{w} = \begin{pmatrix} a \begin{pmatrix}c\\d\end{pmatrix} \\ b \begin{pmatrix}c\\d\end{pmatrix} \end{pmatrix} = \begin{pmatrix}ac\\ad\\bc\\bd\end{pmatrix}`)}
-      </div>
-    `,
-  },
-  {
-    title: "Outer Product",
-    layout: "wide",
-    body: `
-      <div class="mybox">
-        The <span class="defn">outer product</span> of two vectors ${math(tex`\ket{v} = \begin{pmatrix}a\\b\end{pmatrix}`)}, ${math(tex`\ket{w} = \begin{pmatrix}c\\d\end{pmatrix}`)} is
-        ${display(tex`\ket{v}\bra{w} = \begin{pmatrix}a\\b\end{pmatrix}\begin{pmatrix}c^* & d^*\end{pmatrix} = \begin{bmatrix}ac^* & ad^*\\bc^* & bd^*\end{bmatrix}`)}
       </div>
       ${pause}
       <p>What is the difference between an inner product ${math(tex`\langle v|w\rangle`)}, a Kronecker product ${math(tex`\ket{v} \otimes \ket{w}`)}, and an outer product ${math(tex`\ket{v}\bra{w}`)}?</p>
@@ -858,32 +869,6 @@ const SOURCE_SLIDES: SlideSpec[] = [
       </ul>
     `,
   },
-  // {
-  //   title: "Determinant",
-  //   layout: "split",
-  //   body: `
-  //     <ul>
-  //       <li>How much does a matrix transform the area of a region?</li>
-  //     </ul>
-  //     ${pause}
-  //     <div class="mybox">
-  //       The <span class="defn">determinant</span> of a matrix is
-  //       ${display(tex`\det(A) = \det\begin{bmatrix}a & b\\c & d\end{bmatrix} = \left|\begin{matrix}a & b\\c & d\end{matrix}\right| = ad - bc`)}
-  //     </div>
-  //   `,
-  //   visual: {
-  //     kind: "canvas",
-  //     scene: algebraScene(
-  //       [vectorItem("v1", "col1", 1.15, 0.35, 0), vectorItem("v2", "col2", 0.35, 1.1, 1)],
-  //       {
-  //         pairSelection: { firstId: "v1", secondId: "v2" },
-  //         selectedVectorId: "v1",
-  //         showComponentLegs: false,
-  //       },
-  //     ),
-  //     readout: "determinant",
-  //   },
-  // },
   {
     title: "Characterising Transformations",
     layout: "split",
@@ -995,6 +980,32 @@ const SOURCE_SLIDES: SlideSpec[] = [
         ${pause}
         ${display(tex`Z = \ket{0}\bra{0} - \ket{1}\bra{1}.`)}
     `
+  },
+  {
+    title: "Determinant",
+    layout: "split",
+    body: `
+      <ul>
+        <li>How much does a matrix transform the area of a region?</li>
+      </ul>
+      ${pause}
+      <div class="mybox">
+        The <span class="defn">determinant</span> of a matrix is
+        ${display(tex`\det(A) = \det\begin{bmatrix}a & b\\c & d\end{bmatrix} = \left|\begin{matrix}a & b\\c & d\end{matrix}\right| = ad - bc`)}
+      </div>
+    `,
+    visual: {
+      kind: "canvas",
+      scene: algebraScene(
+        [vectorItem("v1", "col1", 1.15, 0.35, 0), vectorItem("v2", "col2", 0.35, 1.1, 1)],
+        {
+          pairSelection: { firstId: "v1", secondId: "v2" },
+          selectedVectorId: "v1",
+          showComponentLegs: false,
+        },
+      ),
+      readout: "determinant",
+    },
   },
     {
     title: "Toolbox Ready?",
