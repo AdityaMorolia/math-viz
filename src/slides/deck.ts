@@ -490,7 +490,8 @@ const SOURCE_SLIDES: SlideSpec[] = [
     // },
   },
   {
-    title: "Enter Geometry: Visualizing Numbers",
+    title: "Enter Geometry:",
+    subtitle: "Visualizing Numbers",
     layout: "wide",
     body: `
       <p>How do we visualize the real numbers?</p>
@@ -515,13 +516,14 @@ const SOURCE_SLIDES: SlideSpec[] = [
     },
   },
   {
-    title: "Properties of Complex Numbers: Arithmetic",
+    title: "Properties of Complex Numbers:",
+    subtitle: "Arithmetic",
     layout: "split",
     body: `
       <p>Let ${math(tex`z = a + bi; \qquad w = c + di`)}</p>
       <div class="mybox">
         <strong>Addition:</strong>
-        ${display(tex`z \pm w = (a+bi) \pm (c+di) = (a+c) + (b+d)i`)}
+        ${display(tex`z + w = (a+bi) + (c+di) = (a+c) + (b+d)i`)}
       </div>
       ${pause}
       <div class="mybox">
@@ -543,7 +545,8 @@ const SOURCE_SLIDES: SlideSpec[] = [
     },
   },
   {
-    title: "Properties of Complex Numbers: Conjugates, Modulus",
+    title: "Properties of Complex Numbers:",
+    subtitle: "Conjugates, Modulus",
     layout: "split",
     body: `
       <div class="mybox">
